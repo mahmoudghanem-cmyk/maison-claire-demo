@@ -32,6 +32,8 @@
 const CONTEXT_KEYS = [
   "contact_first_name",
   "contact_last_name",
+  "contact_email",
+  "contact_phone",
   "language",
   "store_name",
   "cart_reference",
@@ -142,7 +144,10 @@ export default {
         contact_phone: phone,
         contact_name: [firstName, lastName].filter(Boolean).join(" ") || undefined,
         idempotency_key: "cart-recovery-" + attempt,
-        context: cleanContext(body.context, lang),
+        context: Object.assign(cleanContext(body.context, lang), {
+          contact_email: cleanText(body.email, 120),
+          contact_phone: phone // the number the visitor typed, checked above
+        }),
         expiration_seconds: clampInt(env.EXPIRATION_SECONDS, 60, 86400, 300)
       }
     };

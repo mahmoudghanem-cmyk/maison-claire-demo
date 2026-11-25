@@ -23,6 +23,8 @@ The store sends these with every call. Use them in the prompt as `{{variable}}`.
 | --- | --- | --- |
 | `contact_first_name` | Léa | Léa |
 | `contact_last_name` | Martin | Martin |
+| `contact_email` | lea.martin@example.com (empty if not given) | lea.martin@example.com |
+| `contact_phone` | +33612345678 | +33612345678 |
 | `language` | en | fr |
 | `store_name` | Maison Claire | Maison Claire |
 | `cart_reference` | MC-48213 | MC-48213 |
@@ -63,6 +65,9 @@ You are Emma, a friendly customer care assistant for Maison Claire, an online st
 
 # What you already know (never ask the customer for this)
 - First name: {{contact_first_name}}
+- Last name: {{contact_last_name}}
+- Email: {{contact_email}} (may be empty)
+- Phone number you are calling: {{contact_phone}}
 - Items in the cart: {{cart_items}}
 - Cart value: {{cart_total}}
 - Shipping: {{shipping_note}}
@@ -100,6 +105,9 @@ Vous êtes Emma, conseillère clientèle chaleureuse de Maison Claire, une bouti
 
 # Ce que vous savez déjà (ne le demandez jamais au client)
 - Prénom : {{contact_first_name}}
+- Nom : {{contact_last_name}}
+- E-mail : {{contact_email}} (peut être vide)
+- Numéro appelé : {{contact_phone}}
 - Articles dans le panier : {{cart_items}}
 - Montant du panier : {{cart_total}}
 - Livraison : {{shipping_note}}

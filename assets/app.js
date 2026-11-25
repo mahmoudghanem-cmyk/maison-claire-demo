@@ -28,8 +28,6 @@
     { code: "LU", dial: "352", en: "Luxembourg", fr: "Luxembourg" },
     { code: "GB", dial: "44", en: "United Kingdom", fr: "Royaume-Uni" },
     { code: "IE", dial: "353", en: "Ireland", fr: "Irlande" },
-    { code: "US", dial: "1", en: "United States", fr: "États-Unis" },
-    { code: "CA", dial: "1", en: "Canada", fr: "Canada" },
     { code: "ES", dial: "34", en: "Spain", fr: "Espagne" },
     { code: "DE", dial: "49", en: "Germany", fr: "Allemagne" },
     { code: "NL", dial: "31", en: "Netherlands", fr: "Pays-Bas" },
@@ -180,6 +178,8 @@
       phone: c.phone,
       first_name: c.firstName,
       last_name: c.lastName || "",
+      email: c.email || "",
+      follow_up: !!c.followUp,
       context: {
         contact_first_name: c.firstName,
         contact_last_name: c.lastName || "",
@@ -611,6 +611,12 @@
             <span>${t("consent", { store: esc(CFG.storeName) })}</span>
           </label>
           <span class="field-error" data-consent-error></span>
+          ${CFG.boothMode ? `
+          <label class="check">
+            <input type="checkbox" name="followUp" ${c.followUp ? "checked" : ""}>
+            <span>${t("follow_up", { company: esc(CFG.boothCompany || "") })}</span>
+          </label>
+          <p class="help">${t("booth_notice", { company: esc(CFG.boothCompany || "") })}</p>` : ""}
         </div>
         <div class="form-actions">
           <a href="#/" data-open-cart>‹ ${t("return_cart")}</a>
@@ -823,7 +829,12 @@
     ls.set(K.cart, state.cart);
     state.discount = "";
     ls.del(K.discount);
-    if (state.checkout) {
+    if (state.checkout && CFG.boothMode) {
+      // event stand: the next visitor must not see this one's details
+      state.checkout = null;
+      ls.del(K.checkout);
+      ls.del(K.order);
+    } else if (state.checkout) {
       // keep name and phone to speed up the next run, but require a fresh consent and checkout
       state.checkout = { firstName: state.checkout.firstName, lastName: state.checkout.lastName, email: state.checkout.email, country: state.checkout.country, phoneLocal: state.checkout.phoneLocal };
       ls.set(K.checkout, state.checkout);
@@ -901,7 +912,8 @@
       email: String(fd.get("email") || "").trim().slice(0, 120),
       country: String(fd.get("country") || "FR"),
       phoneLocal: String(fd.get("phoneLocal") || "").trim().slice(0, 30),
-      consent: fd.get("consent") === "on"
+      consent: fd.get("consent") === "on",
+      followUp: fd.get("followUp") === "on"
     };
   }
 
@@ -971,9 +983,14 @@
     ls.set(K.cart, state.cart);
     state.discount = "";
     ls.del(K.discount);
-    // keep contact details for convenience, but the next checkout gets a new reference
-    state.checkout = { firstName: c.firstName, lastName: c.lastName, email: c.email, country: c.country, phoneLocal: c.phoneLocal };
-    ls.set(K.checkout, state.checkout);
+    // keep contact details for convenience (not on a stand), but the next checkout gets a new reference
+    if (CFG.boothMode) {
+      state.checkout = null;
+      ls.del(K.checkout);
+    } else {
+      state.checkout = { firstName: c.firstName, lastName: c.lastName, email: c.email, country: c.country, phoneLocal: c.phoneLocal };
+      ls.set(K.checkout, state.checkout);
+    }
     location.hash = "#/thank-you";
   }
 

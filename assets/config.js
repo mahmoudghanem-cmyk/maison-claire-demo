@@ -25,5 +25,10 @@ window.STORE_CONFIG = {
   shippingFee: 5,
 
   // Presenter panel in the bottom left corner. Hide per visit with ?demo=0
-  showDemoPanel: true
+  showDemoPanel: true,
+
+  // Event stand: each visitor's details are forgotten on this device after an order or
+  // Reset, the checkout shows a "details are saved" notice and an optional follow-up opt-in.
+  boothMode: true,
+  boothCompany: "Aircall"
 };

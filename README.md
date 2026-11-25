@@ -91,7 +91,8 @@ Then set the secrets. Each command asks for the value in a hidden prompt, so not
 npx wrangler secret put AIRCALL_API_ID
 npx wrangler secret put AIRCALL_API_TOKEN
 npx wrangler secret put AGENT_ID            # or AGENT_ID_EN and AGENT_ID_FR for one agent per language
-npx wrangler secret put ALLOWED_NUMBERS     # e.g. +33612345678,+447700900123: the phones you'll demo with
+npx wrangler secret put DEMO_PASSCODE       # shared code the stand's device sends (required for booth mode)
+npx wrangler secret put LEADS_ADMIN_KEY     # password to download the visitor list
 npx wrangler secret put DRY_RUN             # type true while testing; delete it later to go live
 ```
 
@@ -99,9 +100,11 @@ npx wrangler secret put DRY_RUN             # type true while testing; delete it
 | --- | --- | --- |
 | `AIRCALL_API_ID`, `AIRCALL_API_TOKEN` | secret | Aircall API key pair |
 | `AGENT_ID` (or `AGENT_ID_EN` / `AGENT_ID_FR`) | secret | Outbound agent ID(s) |
-| `ALLOWED_NUMBERS` | secret | Comma-separated E.164 numbers the Worker may dial. Nothing else is called. |
-| `ALLOWED_PHONE_PREFIXES` | secret (optional) | e.g. `+33,+44`, to let prospects type their own number |
-| `DEMO_PASSCODE` | secret (optional) | Shared code the store must send |
+| `ALLOWED_PHONE_PREFIXES` | `wrangler.toml` | Countries visitors may enter, set Europe-wide: `+33,+44,+32,+41,+34,+49,+39,+31,+353,+352`. Requires `DEMO_PASSCODE`. |
+| `ALLOWED_NUMBERS` | secret (optional) | Extra exact E.164 numbers, or the only ones if you remove the prefixes |
+| `DEMO_PASSCODE` | secret | Shared code the store must send. Without it, booth mode refuses every call. |
+| `LEADS_ADMIN_KEY` | secret | Password for the visitor list download |
+| `MAX_CALLS_PER_HOUR` | `wrangler.toml` | Cap on all calls together, 60 by default |
 | `DRY_RUN` | secret (optional) | `true`: build the Aircall request but don't call |
 | `ALLOWED_ORIGINS` | `wrangler.toml` | Store origins, e.g. `https://<your-user>.github.io` (origin only, no path) |
 | `ABANDON_DELAY_SECONDS` | `wrangler.toml` | Default timer, 30 |
@@ -146,6 +149,16 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 The panel also has **Call now**, which skips the countdown. It's a reliable fallback during a live demo, and it can ring again after an earlier attempt.
 
 > **Closing the tab still calls.** The timer lives in the Worker, not in the browser. Editing the cart or switching language restarts it, completing the order or unticking consent cancels it, and each checkout gets at most one automatic call (**Call now** can ring again).
+
+## At an event stand
+
+Visitors fill in their own name, number and cart on the stand's tablet or laptop, then get called by the agent: they live the experience as the customer.
+
+- **Unlock the device once** by opening `https://<your-user>.github.io/<repo>/?passcode=<DEMO_PASSCODE>&demo=0`. The passcode is saved in that browser only and removed from the address bar. Anyone else who finds the site can't trigger calls.
+- **Between visitors**, click **Reset demo** in the panel (open it with `?demo=1`), or let the visitor complete the order. With `boothMode: true` in `config.js`, the device then forgets the visitor's details so the next person never sees them.
+- **Visitor list**: open `https://cart-recovery-call.<your-subdomain>.workers.dev/leads.csv`, enter any user name and `LEADS_ADMIN_KEY` as the password. You get a CSV (opens in Excel or Google Sheets) with time, name, phone, email, language, cart, call outcome, whether they bought, and whether they ticked the optional follow-up box. Only numbers that passed the passcode and country checks are saved.
+- **Erase the list** after the event: `curl -u admin:<LEADS_ADMIN_KEY> -X DELETE https://cart-recovery-call.<your-subdomain>.workers.dev/leads`
+- **Privacy:** the checkout tells visitors their details are saved, and the follow-up opt-in is separate from the call consent. Only contact people afterwards who ticked `follow_up_ok`, and check the wording with your privacy team before the event.
 
 ## Troubleshooting
 

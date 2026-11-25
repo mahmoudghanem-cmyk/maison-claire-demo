@@ -11,7 +11,7 @@ window.STORE_CONFIG = {
   storeName: "Maison Claire",
 
   // Cart recovery call
-  callEndpoint: "",            // e.g. "https://aircall-cart-recovery.<you>.workers.dev"
+  callEndpoint: "https://cart-recovery-call.maison-claire-demo.workers.dev",
   abandonDelaySeconds: 30,     // override per visit with ?delay=10 (the Worker runs the timer,
                                // so the call happens even if the shopper closes the tab)
 

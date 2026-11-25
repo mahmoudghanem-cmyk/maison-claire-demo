@@ -21,6 +21,7 @@ The store sends these with every call. Use them in the prompt as `{{variable}}`.
 
 | Variable | Example (EN) | Example (FR) |
 | --- | --- | --- |
+| `customer_name` | Léa Martin | Léa Martin |
 | `contact_first_name` | Léa | Léa |
 | `contact_last_name` | Martin | Martin |
 | `contact_email` | lea.martin@example.com (empty if not given) | lea.martin@example.com |

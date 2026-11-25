@@ -145,6 +145,8 @@ export default {
         contact_name: [firstName, lastName].filter(Boolean).join(" ") || undefined,
         idempotency_key: "cart-recovery-" + attempt,
         context: Object.assign(cleanContext(body.context, lang), {
+          // required by the agent's parameters in Aircall: first + last name
+          customer_name: [firstName, lastName].filter(Boolean).join(" "),
           contact_email: cleanText(body.email, 120),
           contact_phone: phone // the number the visitor typed, checked above
         }),

@@ -140,13 +140,13 @@ Aider le client à finaliser sa commande. Comprendre ce qui l'a arrêté, répon
 
 ## 6. Knowledge base
 
-Paste the section matching each agent's language into its knowledge base.
+Paste the section matching each agent's language into its knowledge base. For delivery times, delays, tracking and returns, add [kb-delivery.md](kb-delivery.md) too.
 
 ### English
 
 **Store policies**
 - Shipping: free on orders of 50 euros or more, otherwise 5 euros.
-- Orders are dispatched within 1 to 2 business days. Delivery takes 2 to 4 business days in France, 3 to 6 business days elsewhere in Europe and the UK.
+- Orders are dispatched within 1 to 2 business days. Total time from order to door: 3 to 6 business days in mainland France, 4 to 7 elsewhere in Europe, 5 to 8 for the UK and Switzerland.
 - Returns: free returns within 30 days for unused items.
 - Payment: credit card or PayPal on the website. Payment is never taken over the phone.
 - Discount code MERCI10: 10 percent off the whole order, one use per order, works together with free shipping.
@@ -169,7 +169,7 @@ Paste the section matching each agent's language into its knowledge base.
 
 **Conditions de la boutique**
 - Livraison : offerte dès 50 euros d'achat, sinon 5 euros.
-- Les commandes sont expédiées sous 1 à 2 jours ouvrés. Livraison en 2 à 4 jours ouvrés en France, 3 à 6 jours ouvrés ailleurs en Europe et au Royaume-Uni.
+- Les commandes sont expédiées sous 1 à 2 jours ouvrés. Délai total entre la commande et la livraison : 3 à 6 jours ouvrés en France métropolitaine, 4 à 7 ailleurs en Europe, 5 à 8 pour le Royaume-Uni et la Suisse.
 - Retours : gratuits sous 30 jours pour les articles non utilisés.
 - Paiement : carte bancaire ou PayPal sur le site. Aucun paiement par téléphone.
 - Code MERCI10 : 10 pour cent de réduction sur toute la commande, une utilisation par commande, cumulable avec la livraison offerte.

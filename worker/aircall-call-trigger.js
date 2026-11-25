@@ -390,8 +390,21 @@ async function callAircall(env, job) {
   return { ok: true, aircall_status: res.status, event_id: data && data.id, event_status: data && data.status };
 }
 
+// Aircall's own explanation, wherever it sits in the response (it can be nested).
+function aircallReason(data, depth) {
+  if (!data || typeof data !== "object" || (depth || 0) > 3) return "";
+  if (typeof data.error_message === "string" && data.error_message) return data.error_message;
+  for (const k of ["message", "error", "detail", "errors"]) {
+    const v = data[k];
+    if (typeof v === "string" && v) return v;
+    const nested = aircallReason(Array.isArray(v) ? v[0] : v, (depth || 0) + 1);
+    if (nested) return nested;
+  }
+  return "";
+}
+
 function explainAircallError(status, data) {
-  const detail = (data && (data.message || data.error || data.detail)) || "";
+  const detail = aircallReason(data) || (data ? JSON.stringify(data) : "");
   const hints = {
     400: "Bad request (check the phone format or the context fields)",
     401: "Unauthorized (check AIRCALL_API_ID and AIRCALL_API_TOKEN)",
@@ -403,7 +416,7 @@ function explainAircallError(status, data) {
   };
   const base = hints[status] || "Aircall returned HTTP " + status;
   const extra = typeof detail === "string" ? detail : JSON.stringify(detail);
-  return extra ? base + ": " + extra.slice(0, 200) : base;
+  return extra ? base + ": " + extra.slice(0, 600) : base;
 }
 
 /* ================================================================== helpers */

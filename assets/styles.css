@@ -334,7 +334,9 @@ body.is-checkout { background: var(--surface); }
   display: grid; place-items: center;
 }
 .demo-ring span { width: 36px; height: 36px; border-radius: 999px; background: #14130F; display: grid; place-items: center; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
-.demo-msg.error { color: #FF9A90; }
+.demo-body > *, .demo-status > * { min-width: 0; }
+.demo-msg { overflow-wrap: anywhere; }
+.demo-msg.error { color: #FF9A90; max-height: 9em; overflow-y: auto; }
 .demo-msg.sent { color: #8BE0B5; }
 .demo-meta { margin: 0; display: grid; gap: 6px; }
 .demo-meta div { display: flex; justify-content: space-between; gap: 12px; align-items: center; }

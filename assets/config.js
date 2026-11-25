@@ -12,8 +12,8 @@ window.STORE_CONFIG = {
 
   // Cart recovery call
   callEndpoint: "",            // e.g. "https://aircall-cart-recovery.<you>.workers.dev"
-  abandonDelaySeconds: 30,     // override per visit with ?delay=10
-  callOnTabClose: false,       // true = closing the tab with an armed cart requests the call immediately
+  abandonDelaySeconds: 30,     // override per visit with ?delay=10 (the Worker runs the timer,
+                               // so the call happens even if the shopper closes the tab)
 
   // Offer the voice agent can make (keep it identical in the agent prompt)
   discountCode: "MERCI10",

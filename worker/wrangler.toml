@@ -1,0 +1,26 @@
+# Deploy:  bunx wrangler@4.168.0 deploy        (run from this folder)
+# Secrets: bunx wrangler@4.168.0 secret put NAME
+#   AIRCALL_API_ID, AIRCALL_API_TOKEN, AGENT_ID, ALLOWED_NUMBERS  (+ optional DEMO_PASSCODE, DRY_RUN)
+# Secrets are never stored in this file: the repository is public.
+
+name = "cart-recovery-call"
+main = "aircall-call-trigger.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://mahmoudghanem-cmyk.github.io,http://localhost:8080"
+ABANDON_DELAY_SECONDS = "30"
+EXPIRATION_SECONDS = "300"
+MAX_CALLS_PER_NUMBER_PER_HOUR = "6"
+
+[[durable_objects.bindings]]
+name = "CHECKOUTS"
+class_name = "CheckoutTimer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CheckoutTimer"]
+
+[observability]
+enabled = true

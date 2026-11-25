@@ -57,7 +57,7 @@
     let strip = false;
     if (params.has("delay")) {
       const d = parseInt(params.get("delay"), 10);
-      if (d >= 3 && d <= 3600) ls.set(K.delay, d);
+      if (d >= 5 && d <= 3600) ls.set(K.delay, d);
     }
     if (params.has("demo")) ls.set(K.panel, params.get("demo") === "0" ? "hidden" : "auto");
     if (params.has("lang") && /^(en|fr)$/.test(params.get("lang"))) ls.set(K.lang, params.get("lang"));
@@ -202,77 +202,167 @@
   }
 
   /* ------------------------------------------------------- cart abandonment */
+  /*
+   * Two modes:
+   *  - Server mode (callEndpoint set): the 30 s timer lives in the Cloudflare Worker.
+   *    The store "arms" it as soon as name + phone + consent are known, re-arms on any
+   *    change, and settles it when the order completes. Closing the tab does not stop it.
+   *  - Dry run (no callEndpoint): the timer runs here and only shows the payload.
+   */
+  const endpoint = () => String(CFG.callEndpoint || "").replace(/\/+$/, "");
+  const serverMode = () => !!endpoint();
+
+  async function api(body) {
+    // text/plain keeps this a "simple" CORS request (no preflight).
+    const res = await fetch(endpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify(body),
+      keepalive: true
+    });
+    let data = {};
+    try { data = await res.json(); } catch (e) { /* non JSON */ }
+    if (!res.ok || data.ok === false) throw new Error(data.message || data.error || "HTTP " + res.status);
+    return data;
+  }
+
   const recovery = {
+    armTimer: null,
+    polling: false,
     delay() { return ls.get(K.delay, null) || CFG.abandonDelaySeconds || 30; },
     set(next) { state.recovery = next; ls.set(K.recovery, next); renderPanel(); },
     eligible() {
       const c = state.checkout;
-      return !!(c && c.id && c.phone && c.consent && state.cart.length);
+      return !!(c && c.id && c.token && c.phone && c.consent && state.cart.length);
     },
     alreadyHandled() {
       const r = state.recovery;
-      return state.checkout && r.checkoutId === state.checkout.id && ["sending", "sent", "dry"].indexOf(r.status) !== -1;
+      return state.checkout && r.checkoutId === state.checkout.id && ["sending", "sent", "dry", "converted"].indexOf(r.status) !== -1;
+    },
+    base() {
+      const c = state.checkout;
+      return { checkoutId: c.id, token: c.token, phone: c.phone };
+    },
+    // Map the Worker's view of a checkout onto the panel state.
+    fromServer(v, base) {
+      const b = base || this.base();
+      switch (v.status) {
+        case "armed": return this.set(Object.assign({}, b, { status: "armed", deadline: Date.now() + (v.remaining_ms || 0) }));
+        case "calling": return this.set(Object.assign({}, b, { status: "sending" }));
+        case "sent": return this.set(Object.assign({}, b, { status: "sent", response: v.result || {} }));
+        case "error": return this.set(Object.assign({}, b, { status: "error", message: (v.result && (v.result.message || v.result.error)) || "error" }));
+        case "converted": return this.set(Object.assign({}, b, { status: "converted" }));
+        case "cancelled": return this.set(Object.assign({}, b, { status: "cancelled" }));
+        default: return this.set({ status: "idle" });
+      }
     },
     arm() {
       if (!this.eligible() || this.alreadyHandled()) return;
-      this.set({ status: "armed", checkoutId: state.checkout.id, deadline: Date.now() + this.delay() * 1000 });
+      // Show the countdown at once; the Worker's answer corrects it a moment later.
+      this.set(Object.assign(this.base(), { status: "armed", deadline: Date.now() + this.delay() * 1000 }));
+      if (!serverMode()) return;
+      clearTimeout(this.armTimer);
+      this.armTimer = setTimeout(() => this.sendArm(), 400);
+    },
+    async sendArm() {
+      this.armTimer = null;
+      if (!this.eligible()) return;
+      const base = this.base();
+      const body = Object.assign(buildCallPayload(), { action: "arm", delay_seconds: this.delay() });
+      try { this.fromServer(await api(body), base); }
+      catch (err) { this.set(Object.assign(base, { status: "error", message: String((err && err.message) || err) })); }
+    },
+    // Tell the Worker to drop a timer (consent removed, cart emptied, phone changed, reset).
+    disarm(token, nextStatus) {
+      clearTimeout(this.armTimer);
+      this.armTimer = null;
+      if (serverMode() && token) api({ action: "cancel", attempt_id: token }).catch(() => {});
+      if (nextStatus) this.set({ status: nextStatus, checkoutId: state.recovery.checkoutId });
     },
     onCartChange() {
       if (state.recovery.status !== "armed") return;
-      if (!state.cart.length) this.set({ status: "idle" });
+      if (!state.cart.length) this.disarm(state.recovery.token, "idle");
       else this.arm(); // activity restarts the countdown with the new cart
     },
     cancel() {
-      if (["armed", "error", "dry"].indexOf(state.recovery.status) !== -1) {
-        this.set({ status: "cancelled", checkoutId: state.recovery.checkoutId });
-      }
+      if (["armed", "error", "dry"].indexOf(state.recovery.status) === -1) return;
+      this.disarm(state.recovery.token, "cancelled");
+    },
+    complete() {
+      clearTimeout(this.armTimer);
+      this.armTimer = null;
+      const token = state.checkout && state.checkout.token;
+      if (serverMode() && token) api({ action: "complete", attempt_id: token }).catch(() => {});
+      this.set({ status: "converted", checkoutId: state.checkout && state.checkout.id });
     },
     tick() {
       const r = state.recovery;
+      if (r.status === "sending" && serverMode()) return this.poll();
       if (r.status !== "armed") return;
       const left = r.deadline - Date.now();
       if (left > 0) return updateCountdown(left);
-      if (left < -10 * 60 * 1000) return this.set({ status: "idle" }); // stale timer from an old visit
+      if (serverMode()) {
+        // The Worker places the call (even with the tab closed); we just watch the result.
+        this.set(Object.assign({}, r, { status: "sending" }));
+        return this.poll();
+      }
+      if (left < -10 * 60 * 1000) return this.set({ status: "idle" }); // stale dry-run timer
       this.fire();
     },
-    async fire(manual) {
-      if (state.recovery.status === "sending") return;
-      if (!this.eligible()) { renderPanel(t("demo_need_contact")); return; }
-      const c = state.checkout;
-      // The timer calls once per checkout. "Call now" after a previous attempt gets a
-      // fresh idempotency key, otherwise Aircall would treat it as a duplicate and not dial.
-      if (manual && state.recovery.checkoutId === c.id && ["sent", "error", "dry"].indexOf(state.recovery.status) !== -1) {
-        c.token = randomToken();
-        ls.set(K.checkout, c);
-      }
-      const payload = buildCallPayload();
-      this.set({ status: "sending", checkoutId: c.id, phone: c.phone });
-
-      if (!CFG.callEndpoint) {
-        console.info("[cart-recovery] DRY RUN, no callEndpoint configured. Payload:", payload);
-        return this.set({ status: "dry", checkoutId: c.id, phone: c.phone, payload: payload });
-      }
+    async poll() {
+      const r = state.recovery;
+      if (this.polling || !r.token) return;
+      this.polling = true;
       try {
-        // text/plain keeps this a "simple" CORS request (no preflight).
-        const res = await fetch(CFG.callEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=UTF-8" },
-          body: JSON.stringify(payload),
-          keepalive: true
-        });
-        let data = {};
-        try { data = await res.json(); } catch (e) { /* non JSON */ }
-        if (!res.ok || data.ok === false) throw new Error(data.message || data.error || "HTTP " + res.status);
-        this.set({ status: "sent", checkoutId: c.id, phone: c.phone, response: data });
+        for (let i = 0; i < 30; i++) {
+          const res = await fetch(endpoint() + "/status?id=" + encodeURIComponent(r.token));
+          const v = await res.json();
+          if (state.recovery.token !== r.token) break; // checkout changed meanwhile
+          if (v.status === "armed" || v.status === "calling") {
+            if (v.status === "armed") { this.fromServer(v, r); break; }
+            await new Promise((ok) => setTimeout(ok, 1500));
+            continue;
+          }
+          this.fromServer(v, r);
+          break;
+        }
       } catch (err) {
-        this.set({ status: "error", checkoutId: c.id, phone: c.phone, message: String((err && err.message) || err) });
+        this.set(Object.assign({}, r, { status: "error", message: String((err && err.message) || err) }));
+      } finally {
+        this.polling = false;
       }
     },
+    // "Call now" on the presenter panel: skip the countdown.
+    async fire() {
+      if (state.recovery.status === "sending" && serverMode()) return;
+      if (!this.eligible()) { renderPanel(t("demo_need_contact")); return; }
+      clearTimeout(this.armTimer);
+      this.armTimer = null;
+      const base = this.base();
+      const payload = buildCallPayload();
+      this.set(Object.assign({}, base, { status: "sending" }));
+      if (!serverMode()) {
+        console.info("[cart-recovery] DRY RUN, no callEndpoint configured. Payload:", payload);
+        return this.set(Object.assign({}, base, { status: "dry", payload: payload }));
+      }
+      try { this.fromServer(await api(Object.assign(payload, { action: "call_now" })), base); }
+      catch (err) { this.set(Object.assign({}, base, { status: "error", message: String((err && err.message) || err) })); }
+    },
+    // A change made just before the tab closes still reaches the Worker.
     onPageHide() {
-      if (!CFG.callOnTabClose || !CFG.callEndpoint || state.recovery.status !== "armed" || !this.eligible()) return;
-      const body = new Blob([JSON.stringify(buildCallPayload())], { type: "text/plain;charset=UTF-8" });
-      if (navigator.sendBeacon && navigator.sendBeacon(CFG.callEndpoint, body)) {
-        this.set({ status: "sent", checkoutId: state.checkout.id, phone: state.checkout.phone });
+      if (!serverMode() || !this.armTimer || !this.eligible()) return;
+      clearTimeout(this.armTimer);
+      this.armTimer = null;
+      const body = Object.assign(buildCallPayload(), { action: "arm", delay_seconds: this.delay() });
+      if (navigator.sendBeacon) navigator.sendBeacon(endpoint(), new Blob([JSON.stringify(body)], { type: "text/plain;charset=UTF-8" }));
+    },
+    // Coming back to the page: ask the Worker what happened while we were away.
+    onLoad() {
+      const r = state.recovery;
+      if (serverMode() && r.token && (r.status === "armed" || r.status === "sending")) {
+        this.polling = false;
+        this.set(Object.assign({}, r, { status: "sending" }));
+        this.poll();
       }
     }
   };
@@ -728,6 +818,7 @@
   }
 
   function resetDemo() {
+    recovery.disarm(state.checkout && state.checkout.token); // drop any timer on the Worker
     state.cart = [];
     ls.set(K.cart, state.cart);
     state.discount = "";
@@ -814,6 +905,37 @@
     };
   }
 
+  // Save the shopper's details. A new phone number means a new checkout (and drops the old timer).
+  function captureContact(v, phone) {
+    const prev = state.checkout || {};
+    const same = prev.phone === phone && prev.id && prev.token;
+    if (!same && prev.token && state.recovery.status === "armed") recovery.disarm(prev.token);
+    state.checkout = Object.assign({}, v, {
+      phone: phone,
+      id: same ? prev.id : newCheckoutRef(),
+      token: same ? prev.token : randomToken()
+    });
+    ls.set(K.checkout, state.checkout);
+  }
+
+  // Like Shopify, capture the checkout as soon as the details are there, without waiting
+  // for "Continue": a shopper who types their number and closes the tab still gets the call.
+  function liveCapture(form) {
+    if (!form || !state.cart.length) return;
+    const v = readContactForm(form);
+    const country = COUNTRIES.find((x) => x.code === v.country) || COUNTRIES[0];
+    const phone = normalizePhone(v.phoneLocal, country.dial);
+    if (v.firstName && phone && v.consent) {
+      captureContact(v, phone);
+      recovery.arm();
+    } else if (!v.consent && state.checkout && state.checkout.consent) {
+      // consent withdrawn: no call
+      state.checkout.consent = false;
+      ls.set(K.checkout, state.checkout);
+      if (state.recovery.status === "armed") recovery.disarm(state.recovery.token, "idle");
+    }
+  }
+
   function submitContact(form) {
     const v = readContactForm(form);
     const country = COUNTRIES.find((x) => x.code === v.country) || COUNTRIES[0];
@@ -834,14 +956,7 @@
       if (bad && bad.focus) bad.focus();
       return;
     }
-    const prev = state.checkout || {};
-    const samePerson = prev.phone === phone;
-    state.checkout = Object.assign({}, v, {
-      phone: phone,
-      id: prev.id && samePerson ? prev.id : newCheckoutRef(),
-      token: prev.token && samePerson && prev.id ? prev.token : randomToken()
-    });
-    ls.set(K.checkout, state.checkout);
+    captureContact(v, phone);
     state.draft = null;
     recovery.arm();
     location.hash = "#/checkout/payment";
@@ -851,7 +966,7 @@
     const c = state.checkout;
     const tt = totals();
     ls.set(K.order, { ref: c.id, firstName: c.firstName, total: tt.total });
-    recovery.set({ status: "converted", checkoutId: c.id });
+    recovery.complete();
     state.cart = [];
     ls.set(K.cart, state.cart);
     state.discount = "";
@@ -870,6 +985,7 @@
     ls.set(K.lang, lang);
     render();
     if (document.body.classList.contains("cart-open")) renderDrawer();
+    if (state.recovery.status === "armed") recovery.arm(); // the call follows the new language
   }
 
   document.addEventListener("click", (e) => {
@@ -907,7 +1023,7 @@
     if (el.hasAttribute("data-complete-order")) { completeOrder(); return; }
 
     const demo = el.getAttribute("data-demo");
-    if (demo === "call") recovery.fire(true);
+    if (demo === "call") recovery.fire();
     else if (demo === "cancel") recovery.cancel();
     else if (demo === "reset") resetDemo();
     else if (demo === "min" || demo === "open") { state.panel = demo; ls.set(K.panel, demo); renderPanel(); }
@@ -939,6 +1055,7 @@
       else renderPanel();
     }
     if (el.hasAttribute("data-demo-passcode")) ls.set(K.passcode, el.value.trim());
+    if (el.form && el.form.id === "contact-form") liveCapture(el.form);
   });
 
   document.addEventListener("input", (e) => {
@@ -968,4 +1085,5 @@
   document.addEventListener("visibilitychange", () => recovery.tick());
 
   render();
+  recovery.onLoad();
 })();

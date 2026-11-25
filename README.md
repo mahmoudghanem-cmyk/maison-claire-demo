@@ -5,19 +5,23 @@ A clean, Shopify-style demo storefront (English / French) that triggers an **Air
 ```
  Shopper on the store (GitHub Pages)
    │  1. adds products, goes to checkout
-   │  2. enters first name + mobile + ticks "you may call me" → Continue to payment
-   │  3. does not pay within 30 s  (= abandoned checkout)
+   │  2. enters first name + mobile + ticks "you may call me"
+   │     → the store sends the cart to the Worker right away ("arm")
    ▼
- POST cart (JSON)  ──►  Cloudflare Worker  (holds the Aircall API key, allowlist, passcode)
-                              │
-                              ▼
-            POST https://api.aircall.io/v1/outbound-calls/agents/{AGENT_ID_EN | AGENT_ID_FR}
-                              │
-                              ▼
-               Aircall AI Voice Agent calls the shopper, in the language they shopped in
+ Cloudflare Worker  (holds the Aircall API key, allowlist, passcode)
+   │  starts a 30 s timer on the server (a Durable Object alarm), one per checkout
+   │  any change to the cart or language restarts the timer; paying cancels it
+   ▼
+ timer ends, no order  (= abandoned checkout, even if the tab was closed)
+   │
+   ▼
+ POST https://api.aircall.io/v1/outbound-calls/agents/{AGENT_ID}
+   │
+   ▼
+ Aircall AI Voice Agent calls the shopper, in the language they shopped in
 ```
 
-Completing the order before the timer ends cancels the call, just as a real recovery flow would.
+The timer runs on the server, so the call happens even if the shopper closes the tab or switches off their laptop. Completing the order before the timer ends cancels the call, just as a real recovery flow would.
 
 ## What's in the repo
 
@@ -26,7 +30,8 @@ Completing the order before the timer ends cancels the call, just as a real reco
 | `index.html`, `assets/` | The store: static HTML, CSS and JS with no build step. |
 | `assets/config.js` | **The only file you edit**: Worker URL, delay, discount code. |
 | `assets/catalog.js` | The 8 products with EN/FR names, descriptions and spoken forms. |
-| `worker/aircall-call-trigger.js` | Cloudflare Worker that calls the Aircall API. |
+| `worker/aircall-call-trigger.js` | Cloudflare Worker: runs the abandonment timer and calls the Aircall API. |
+| `worker/wrangler.toml` | Worker settings (public values only; secrets are set with `wrangler secret put`). |
 | `docs/agent-brief.md` | Agent setup: prompt, first message, voicemail and knowledge base, in EN and FR. |
 
 ## The products
@@ -70,26 +75,41 @@ Follow [docs/agent-brief.md](docs/agent-brief.md). You need:
 - the agent ID(s), from the agent's URL or its trigger endpoint in the Dashboard,
 - an Aircall **API ID and API token** (Dashboard → Integrations & API → API keys).
 
-### 3. Deploy the Worker (5 minutes, no CLI needed)
+### 3. Deploy the Worker (command line, about 5 minutes)
 
-1. Go to https://dash.cloudflare.com → **Workers & Pages → Create → Create Worker**. Name it `cart-recovery-call`, then **Deploy**.
-2. Click **Edit code**, replace everything with the contents of `worker/aircall-call-trigger.js`, then **Deploy**.
-3. Under **Settings → Variables and Secrets**, add:
+The Worker uses a Durable Object (a small server-side timer per checkout), so deploy it with Wrangler, Cloudflare's CLI, rather than pasting code in the dashboard. A free Cloudflare account is enough.
 
-| Name | Type | Example |
+```bash
+cd worker
+npx wrangler login          # opens the browser once to authorise Wrangler
+npx wrangler deploy         # prints https://cart-recovery-call.<your-subdomain>.workers.dev
+```
+
+Then set the secrets. Each command asks for the value in a hidden prompt, so nothing ends up in the repository or your shell history:
+
+```bash
+npx wrangler secret put AIRCALL_API_ID
+npx wrangler secret put AIRCALL_API_TOKEN
+npx wrangler secret put AGENT_ID            # or AGENT_ID_EN and AGENT_ID_FR for one agent per language
+npx wrangler secret put ALLOWED_NUMBERS     # e.g. +33612345678,+447700900123: the phones you'll demo with
+npx wrangler secret put DRY_RUN             # type true while testing; delete it later to go live
+```
+
+| Name | Where | What |
 | --- | --- | --- |
-| `AIRCALL_API_ID` | Secret | your API ID |
-| `AIRCALL_API_TOKEN` | Secret | your API token |
-| `AGENT_ID_EN` | Text | English outbound agent ID |
-| `AGENT_ID_FR` | Text | French outbound agent ID |
-| `ALLOWED_ORIGINS` | Text | `https://<your-user>.github.io` (origin only, no path) |
-| `ALLOWED_NUMBERS` | Text | `+33612345678,+447700900123`: the phones you'll demo with |
-| `DEMO_PASSCODE` | Secret (optional) | any string |
-| `DRY_RUN` | Text (optional) | `true` while testing, then delete it |
+| `AIRCALL_API_ID`, `AIRCALL_API_TOKEN` | secret | Aircall API key pair |
+| `AGENT_ID` (or `AGENT_ID_EN` / `AGENT_ID_FR`) | secret | Outbound agent ID(s) |
+| `ALLOWED_NUMBERS` | secret | Comma-separated E.164 numbers the Worker may dial. Nothing else is called. |
+| `ALLOWED_PHONE_PREFIXES` | secret (optional) | e.g. `+33,+44`, to let prospects type their own number |
+| `DEMO_PASSCODE` | secret (optional) | Shared code the store must send |
+| `DRY_RUN` | secret (optional) | `true`: build the Aircall request but don't call |
+| `ALLOWED_ORIGINS` | `wrangler.toml` | Store origins, e.g. `https://<your-user>.github.io` (origin only, no path) |
+| `ABANDON_DELAY_SECONDS` | `wrangler.toml` | Default timer, 30 |
+| `EXPIRATION_SECONDS`, `MAX_CALLS_PER_NUMBER_PER_HOUR` | `wrangler.toml` | 300 and 6 by default |
 
-Optional: `ALLOWED_PHONE_PREFIXES` (for example `+33,+44`, to let prospects type their own number), `AIRCALL_API_BASE` (default `https://api.aircall.io`), `EXPIRATION_SECONDS` (default 300), `MAX_CALLS_PER_NUMBER_PER_HOUR` (default 6).
+Open the Worker URL in a browser. You should see `{"ok":true,"service":"cart-recovery-call","dry_run":true,"server_timer":true}`. Live logs: `npx wrangler tail`.
 
-4. Open the Worker URL in a browser. You should see `{"ok":true,"service":"cart-recovery-call",...}`.
+To remove dry run later: `npx wrangler secret delete DRY_RUN`.
 
 ### 4. Connect the store to the Worker
 
@@ -99,7 +119,7 @@ In `assets/config.js`, set:
 callEndpoint: "https://cart-recovery-call.<your-subdomain>.workers.dev",
 ```
 
-Also bump the `?v=1` on the `config.js` script tag in `index.html` (to `?v=2`, and so on). GitHub Pages caches files for about 10 minutes, so without the bump the old config can keep loading. Commit and push. The demo panel badge switches from **Dry run** to **Live**. If it doesn't, hard-refresh with Cmd+Shift+R.
+Also bump the `?v=` on the script tags in `index.html` (for example `?v=2` to `?v=3`). GitHub Pages caches files for about 10 minutes, so without the bump the old config can keep loading. Commit and push. The demo panel badge switches from **Dry run** to **Live**. If it doesn't, hard-refresh with Cmd+Shift+R.
 
 **First live call = verification.** Before demoing to anyone, do one call to your own allow-listed number with `DRY_RUN` removed. If Aircall answers 400 or 422, remove the `contact_name` line from the Worker first (the other fields match the Aircall-verified HubSpot trigger payload).
 
@@ -109,8 +129,8 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 
 1. Open the store and pick **EN** or **FR** in the header. The call uses the language the shopper used.
 2. Add a couple of products and click **Check out**.
-3. Enter a first name and an allow-listed mobile number, tick the call consent box, then click **Continue to payment**.
-4. Stop. The demo panel counts down from 30 s and then shows **Call requested**. Your phone rings.
+3. Enter a first name and an allow-listed mobile number and tick the call consent box. The timer starts on the server as soon as all three are filled in; **Continue to payment** is optional.
+4. Stop, or close the tab. The demo panel counts down from 30 s and then shows **Call requested**. Your phone rings either way.
 5. Talk to the agent (see the question ideas in the agent brief). Then go back, apply **MERCI10** and complete the order.
 6. Click **Reset demo** in the panel before the next run.
 
@@ -118,14 +138,14 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 
 | Option | Effect |
 | --- | --- |
-| `?delay=10` | Countdown in seconds (3 to 3600). Also adjustable in the panel. |
+| `?delay=10` | Countdown in seconds (5 to 3600). Also adjustable in the panel. |
 | `?lang=fr` | Open the store in French. |
 | `?demo=0` | Hide the presenter panel (for a "real customer" look). `?demo=1` brings it back. |
 | `?passcode=xxxx` | Save the Worker passcode in this browser. |
 
 The panel also has **Call now**, which skips the countdown. It's a reliable fallback during a live demo, and it can ring again after an earlier attempt.
 
-> **Keep the tab open.** The 30 s timer runs in the browser, so closing the tab does not trigger the call: a reload can't be told apart from a close. To "abandon", just stop on the payment page or switch to another tab. To also call when the tab is closed, set `callOnTabClose: true` in `config.js`. The call is then requested immediately on close, but reloading the page on the payment step will call too.
+> **Closing the tab still calls.** The timer lives in the Worker, not in the browser. Editing the cart or switching language restarts it, completing the order or unticking consent cancels it, and each checkout gets at most one automatic call (**Call now** can ring again).
 
 ## Troubleshooting
 
@@ -139,9 +159,9 @@ The panel also has **Call now**, which skips the countdown. It's a reliable fall
 | `Agent not found` | Check the agent IDs and `AIRCALL_API_BASE` |
 | `aircall_rejected` | Aircall refused the call (eligibility, or a restricted number). See `aircall_response` in the browser network tab. |
 | `Failed to fetch` | Wrong `callEndpoint` URL, or the Worker isn't deployed |
-| Panel says "Worker reached, but it is in DRY_RUN mode" | Remove `DRY_RUN` from the Worker variables |
+| Panel says "Worker reached, but it is in DRY_RUN mode" | `npx wrangler secret delete DRY_RUN` from `worker/` |
 
-Worker logs: Cloudflare dashboard → your Worker → **Logs** (live tail).
+Worker logs: `npx wrangler tail` from `worker/`, or Cloudflare dashboard → your Worker → **Logs**.
 
 ## Safety and compliance
 
@@ -154,4 +174,4 @@ Worker logs: Cloudflare dashboard → your Worker → **Logs** (live tail).
 
 ## No-code alternative
 
-Instead of the Worker, you can point `callEndpoint` at a Make, Zapier or n8n webhook that calls the same Aircall endpoint with Basic auth. The store sends `text/plain` JSON with `phone`, `lang`, `attempt_id` and a `context` object. Map them to `contact_phone`, the agent ID, `idempotency_key` and `context`. You lose the allowlist and passcode checks unless you rebuild them as filters, so the Worker is recommended.
+A Make, Zapier or n8n webhook can stand in for the Worker, but it has to play the Worker's part. The store sends `text/plain` JSON with an `action` (`arm`, `cancel`, `complete` or `call_now`), `attempt_id`, `phone`, `lang`, `delay_seconds` and a `context` object. The scenario must wait `delay_seconds` after the latest `arm` for that `attempt_id`, skip the call if a `cancel` or `complete` came in meanwhile, then call the Aircall endpoint with Basic auth (`contact_phone`, `idempotency_key` = `cart-recovery-<attempt_id>`, `context`). The panel's live status also needs `GET /status?id=<attempt_id>`. That is a lot to rebuild, along with the allowlist and passcode checks, so the Worker is recommended.

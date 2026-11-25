@@ -1,28 +1,25 @@
 /**
- * Cloudflare Worker: abandoned cart -> Aircall AI Voice Agent outbound call.
+ * Cloudflare Worker + Durable Object: abandoned checkout -> Aircall AI Voice Agent call.
  *
- * The static store (GitHub Pages) cannot hold Aircall API credentials, so it
- * POSTs the abandoned cart here. This Worker validates the request and calls:
+ * The 30 second abandonment timer runs HERE, not in the shopper's browser, so the
+ * call still happens if the shopper closes the tab.
  *
- *   POST {AIRCALL_API_BASE}/v1/outbound-calls/agents/{agentId}
+ *   store  --POST {action:"arm"}------>  Worker  -> CheckoutTimer (one per checkout)
+ *                                                      sets an alarm at now + delay
+ *   store  --POST {action:"arm"}------>  (cart or details changed: alarm moves forward)
+ *   store  --POST {action:"complete"}->  order placed: alarm cancelled, no call
+ *   alarm fires (tab open or closed) -> POST {AIRCALL_API_BASE}/v1/outbound-calls/agents/{agentId}
+ *   store  --GET /status?id=...------->  presenter panel shows armed / sent / error
  *
- * Paste this file into a Worker (Cloudflare dashboard > Workers > Create > Edit code)
- * and set these variables under Settings > Variables and Secrets:
- *
- *   AIRCALL_API_ID          (secret)  Aircall API ID
- *   AIRCALL_API_TOKEN       (secret)  Aircall API token
- *   AGENT_ID_EN                       outbound agent ID used when the shopper browsed in English
- *   AGENT_ID_FR                       outbound agent ID used when the shopper browsed in French
- *   AGENT_ID                          fallback agent ID (if you use a single agent)
- *   ALLOWED_ORIGINS                   comma list, e.g. "https://you.github.io,http://localhost:8080"
- *   ALLOWED_NUMBERS                   comma list of exact E.164 numbers allowed to be called, and/or
- *   ALLOWED_PHONE_PREFIXES            comma list of prefixes, e.g. "+33,+44". At least one of the two
- *                                     is required: the Worker refuses to dial anything otherwise.
- *   DEMO_PASSCODE           (secret, optional) if set, requests must carry this passcode
- *   DRY_RUN                           "true" returns the Aircall request without calling Aircall
- *   AIRCALL_API_BASE                  optional, default https://api.aircall.io
- *   EXPIRATION_SECONDS                optional, default 300 (call attempt expires after 5 minutes)
- *   MAX_CALLS_PER_NUMBER_PER_HOUR     optional, default 6 (best effort, per Worker instance)
+ * Deploy with wrangler (see wrangler.toml). Secrets, set with `wrangler secret put NAME`:
+ *   AIRCALL_API_ID, AIRCALL_API_TOKEN   Aircall API credentials
+ *   AGENT_ID                            outbound agent ID (or AGENT_ID_EN / AGENT_ID_FR per language)
+ *   ALLOWED_NUMBERS                     comma list of E.164 numbers allowed to be called, and/or
+ *   ALLOWED_PHONE_PREFIXES              comma list of prefixes, e.g. "+33,+44". At least one is required.
+ *   DEMO_PASSCODE                       optional: requests that can place calls must carry it
+ *   DRY_RUN                             "true" = build the Aircall request but never call
+ * Plain vars (wrangler.toml): ALLOWED_ORIGINS, ABANDON_DELAY_SECONDS, AIRCALL_API_BASE,
+ *   EXPIRATION_SECONDS, MAX_CALLS_PER_NUMBER_PER_HOUR
  */
 
 const CONTEXT_KEYS = [
@@ -38,17 +35,25 @@ const CONTEXT_KEYS = [
   "discount_code",
   "discount_offer"
 ];
+const CLEANUP_AFTER_MS = 24 * 3600 * 1000; // forget a checkout a day after it is settled
 
-const recentCalls = new Map(); // phone -> [timestamps], best effort rate limit per isolate
+/* ======================================================================= Worker */
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "";
-    const cors = corsHeaders(origin, env);
+    const cors = corsHeaders(origin);
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+
+    if (request.method === "GET" && url.pathname.replace(/\/+$/, "") === "/status") {
+      const id = cleanId(url.searchParams.get("id"));
+      if (!id) return json({ ok: false, error: "missing_id" }, 400, cors);
+      return relay(await timer(env, "checkout:" + id).fetch("https://timer/status"), cors);
+    }
     if (request.method === "GET") {
-      return json({ ok: true, service: "cart-recovery-call", dry_run: isTrue(env.DRY_RUN) }, 200, cors);
+      return json({ ok: true, service: "cart-recovery-call", dry_run: isTrue(env.DRY_RUN), server_timer: true }, 200, cors);
     }
     if (request.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405, cors);
 
@@ -65,6 +70,19 @@ export default {
       return json({ ok: false, error: "invalid_json" }, 400, cors);
     }
 
+    const action = body.action || "call_now";
+    const attempt = cleanId(body.attempt_id);
+    if (!attempt) return json({ ok: false, error: "missing_attempt_id" }, 400, cors);
+    const checkout = timer(env, "checkout:" + attempt);
+
+    // Settling a checkout can never place a call, so it needs no passcode or allowlist.
+    if (action === "complete" || action === "cancel") {
+      return relay(await checkout.fetch("https://timer/" + action, { method: "POST" }), cors);
+    }
+    if (action !== "arm" && action !== "call_now") {
+      return json({ ok: false, error: "unknown_action" }, 400, cors);
+    }
+
     if (env.DEMO_PASSCODE && String(body.passcode || "") !== String(env.DEMO_PASSCODE)) {
       return json({ ok: false, error: "invalid_passcode", message: "Wrong or missing demo passcode" }, 401, cors);
     }
@@ -75,98 +93,248 @@ export default {
     const allow = phoneAllowed(phone, env);
     if (!allow.ok) return json({ ok: false, error: "phone_not_allowed", message: allow.message }, 403, cors);
 
-    if (!rateLimitOk(phone, env)) {
-      return json({ ok: false, error: "rate_limited", message: "Too many calls to this number, try again later" }, 429, cors);
-    }
-
     const lang = body.lang === "fr" ? "fr" : "en";
     const dryRun = isTrue(env.DRY_RUN);
     const agentId = (lang === "fr" ? env.AGENT_ID_FR : env.AGENT_ID_EN) || env.AGENT_ID ||
-      (dryRun ? "AGENT_ID_NOT_SET" : ""); // lets you test the store -> Worker link before the agents exist
+      (dryRun ? "AGENT_ID_NOT_SET" : "");
     if (!agentId) {
-      return json({ ok: false, error: "agent_not_configured", message: "Set AGENT_ID_EN / AGENT_ID_FR or AGENT_ID" }, 500, cors);
+      return json({ ok: false, error: "agent_not_configured", message: "Set the AGENT_ID secret (or AGENT_ID_EN / AGENT_ID_FR)" }, 500, cors);
     }
 
-    const context = cleanContext(body.context, lang);
-    const attempt = cleanId(body.attempt_id) || cleanId(body.checkout_id) || crypto.randomUUID();
     const firstName = cleanText(body.first_name, 60);
     const lastName = cleanText(body.last_name, 60);
-
-    const aircallRequest = {
-      contact_phone: phone,
-      contact_name: [firstName, lastName].filter(Boolean).join(" ") || undefined,
-      idempotency_key: "cart-recovery-" + attempt,
-      context,
-      expiration_seconds: clampInt(env.EXPIRATION_SECONDS, 60, 86400, 300)
-    };
-
     const base = String(env.AIRCALL_API_BASE || "https://api.aircall.io").replace(/\/+$/, "");
-    const url = base + "/v1/outbound-calls/agents/" + encodeURIComponent(agentId);
+    const job = {
+      baseKey: "cart-recovery-" + attempt,
+      url: base + "/v1/outbound-calls/agents/" + encodeURIComponent(agentId),
+      request: {
+        contact_phone: phone,
+        contact_name: [firstName, lastName].filter(Boolean).join(" ") || undefined,
+        idempotency_key: "cart-recovery-" + attempt,
+        context: cleanContext(body.context, lang),
+        expiration_seconds: clampInt(env.EXPIRATION_SECONDS, 60, 86400, 300)
+      }
+    };
+    const defaultDelay = clampInt(env.ABANDON_DELAY_SECONDS, 5, 3600, 30);
+    const delayMs = clampInt(body.delay_seconds, 5, 3600, defaultDelay) * 1000;
 
-    if (dryRun) {
-      console.log("DRY_RUN", JSON.stringify({ url, aircallRequest }));
-      return json({ ok: true, dry_run: true, url, agent_id: agentId, request: aircallRequest }, 200, cors);
-    }
-
-    if (!env.AIRCALL_API_ID || !env.AIRCALL_API_TOKEN) {
-      return json({ ok: false, error: "credentials_missing", message: "Set AIRCALL_API_ID and AIRCALL_API_TOKEN" }, 500, cors);
-    }
-
-    let res, text;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: "Basic " + btoa(env.AIRCALL_API_ID + ":" + env.AIRCALL_API_TOKEN),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(aircallRequest)
-      });
-      text = await res.text();
-    } catch (e) {
-      return json({ ok: false, error: "aircall_unreachable", message: String(e && e.message || e) }, 502, cors);
-    }
-
-    let data = null;
-    try { data = JSON.parse(text); } catch (e) { /* keep text */ }
-    console.log("Aircall response", res.status, text.slice(0, 500));
-
-    if (!res.ok) {
-      return json({
-        ok: false,
-        error: "aircall_error",
-        aircall_status: res.status,
-        message: explainAircallError(res.status, data, text),
-        aircall_response: data || text.slice(0, 500)
-      }, 502, cors);
-    }
-
-    if (data && data.status === "REJECTED") {
-      return json({
-        ok: false,
-        error: "aircall_rejected",
-        message: data.error_message || "Aircall rejected the call (eligibility or number configuration)",
-        aircall_response: data
-      }, 502, cors);
-    }
-
-    recordCall(phone);
-    return json({
-      ok: true,
-      aircall_status: res.status,
-      event_id: data && data.id,
-      event_status: data && data.status,
-      agent_id: agentId
-    }, 200, cors);
+    return relay(await checkout.fetch("https://timer/" + action, {
+      method: "POST",
+      body: JSON.stringify({ job, delayMs })
+    }), cors);
   }
 };
 
-/* ------------------------------------------------------------------ helpers */
+/* ============================================================ Durable Object */
+
+/**
+ * One instance per checkout (named "checkout:<attempt id>") holds the cart snapshot
+ * and the alarm. Instances named "limit:<phone>" are used as a per-number rate limiter.
+ */
+export class CheckoutTimer {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.storage = ctx.storage;
+    this.env = env;
+  }
+
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+    const input = request.method === "POST" ? await request.json().catch(() => ({})) : {};
+
+    if (path === "/limit") return json(await this.takeRateLimitSlot(input.max));
+
+    const rec = (await this.storage.get("rec")) || { status: "idle", calls: 0 };
+
+    if (path === "/status") return json(view(rec));
+
+    if (path === "/arm") {
+      // One automatic call per checkout: once it is calling, called or bought, arming does nothing.
+      if (["calling", "sent", "converted"].includes(rec.status)) return json(view(rec));
+      const now = Date.now();
+      const next = { status: "armed", job: input.job, deadline: now + input.delayMs, calls: rec.calls || 0 };
+      await this.storage.put("rec", next);
+      await this.storage.setAlarm(next.deadline);
+      return json(view(next));
+    }
+
+    if (path === "/call_now") {
+      if (rec.status === "calling") return json(view(rec));
+      const next = { status: "calling", job: input.job, calls: (rec.calls || 0) + 1, deadline: null };
+      await this.storage.put("rec", next);
+      return json(view(await this.place(next)));
+    }
+
+    if (path === "/complete") {
+      const next = rec.status === "sent" || rec.status === "calling"
+        ? Object.assign({}, rec, { purchased: true })
+        : Object.assign({}, rec, { status: "converted", deadline: null });
+      return json(view(await this.settle(next)));
+    }
+
+    if (path === "/cancel") {
+      const next = ["armed", "error", "idle"].includes(rec.status)
+        ? Object.assign({}, rec, { status: "cancelled", deadline: null })
+        : rec;
+      return json(view(await this.settle(next)));
+    }
+
+    return json({ ok: false, error: "not_found" }, 404);
+  }
+
+  async alarm() {
+    const rec = await this.storage.get("rec");
+    if (!rec) return;
+    if (rec.status === "armed") {
+      if (Date.now() < rec.deadline - 500) { // re-armed while this alarm was in flight
+        await this.storage.setAlarm(rec.deadline);
+        return;
+      }
+      const next = Object.assign({}, rec, { status: "calling", calls: (rec.calls || 0) + 1 });
+      await this.storage.put("rec", next);
+      await this.place(next);
+      return;
+    }
+    if (rec.cleanupAt && Date.now() >= rec.cleanupAt) await this.storage.deleteAll();
+  }
+
+  async place(rec) {
+    // Every attempt after the first gets its own key, or Aircall would treat it as a duplicate.
+    const baseKey = rec.job.baseKey;
+    rec.job.request.idempotency_key = rec.calls > 1 ? baseKey + "-" + rec.calls : baseKey;
+    let result;
+    if (!isTrue(this.env.DRY_RUN)) {
+      const max = clampInt(this.env.MAX_CALLS_PER_NUMBER_PER_HOUR, 1, 1000, 6);
+      const limiter = timer(this.env, "limit:" + rec.job.request.contact_phone);
+      const slot = await (await limiter.fetch("https://timer/limit", { method: "POST", body: JSON.stringify({ max }) })).json();
+      if (!slot.ok) result = { ok: false, error: "rate_limited", message: "Too many calls to this number in the last hour" };
+    }
+    if (!result) result = await callAircall(this.env, rec.job);
+    const next = Object.assign({}, rec, { status: result.ok ? "sent" : "error", result, deadline: null });
+    return this.settle(next);
+  }
+
+  // Store a settled record and schedule its cleanup.
+  async settle(rec) {
+    if (rec.status === "armed") { await this.storage.put("rec", rec); return rec; }
+    rec.cleanupAt = Date.now() + CLEANUP_AFTER_MS;
+    await this.storage.put("rec", rec);
+    await this.storage.setAlarm(rec.cleanupAt);
+    return rec;
+  }
+
+  async takeRateLimitSlot(max) {
+    const now = Date.now();
+    const recent = ((await this.storage.get("calls")) || []).filter((ts) => now - ts < 3600 * 1000);
+    if (recent.length >= (max || 6)) return { ok: false };
+    recent.push(now);
+    await this.storage.put("calls", recent);
+    return { ok: true };
+  }
+}
+
+/* ================================================================== Aircall */
+
+async function callAircall(env, job) {
+  if (isTrue(env.DRY_RUN)) {
+    console.log("DRY_RUN", JSON.stringify(job));
+    return { ok: true, dry_run: true, message: "DRY_RUN: Aircall request built, no call placed", request: job.request, url: job.url };
+  }
+  if (!env.AIRCALL_API_ID || !env.AIRCALL_API_TOKEN) {
+    return { ok: false, error: "credentials_missing", message: "Set the AIRCALL_API_ID and AIRCALL_API_TOKEN secrets" };
+  }
+
+  let res, text;
+  try {
+    res = await fetch(job.url, {
+      method: "POST",
+      headers: {
+        Authorization: "Basic " + btoa(env.AIRCALL_API_ID + ":" + env.AIRCALL_API_TOKEN),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(job.request)
+    });
+    text = await res.text();
+  } catch (e) {
+    return { ok: false, error: "aircall_unreachable", message: String((e && e.message) || e) };
+  }
+
+  let data = null;
+  try { data = JSON.parse(text); } catch (e) { /* keep text */ }
+  console.log("Aircall response", res.status, text.slice(0, 500));
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: "aircall_error",
+      aircall_status: res.status,
+      message: explainAircallError(res.status, data),
+      aircall_response: data || text.slice(0, 500)
+    };
+  }
+  if (data && data.status === "REJECTED") {
+    return {
+      ok: false,
+      error: "aircall_rejected",
+      message: data.error_message || "Aircall rejected the call (eligibility or number configuration)",
+      aircall_response: data
+    };
+  }
+  return { ok: true, aircall_status: res.status, event_id: data && data.id, event_status: data && data.status };
+}
+
+function explainAircallError(status, data) {
+  const detail = (data && (data.message || data.error || data.detail)) || "";
+  const hints = {
+    400: "Bad request (check the phone format or the context fields)",
+    401: "Unauthorized (check AIRCALL_API_ID and AIRCALL_API_TOKEN)",
+    403: "Forbidden (the API key may not have access to this agent)",
+    404: "Agent not found (check AGENT_ID)",
+    409: "Conflict (usually: no phone number is assigned to the outbound agent in the Aircall Dashboard)",
+    422: "Validation error from Aircall",
+    429: "Rate limited by Aircall"
+  };
+  const base = hints[status] || "Aircall returned HTTP " + status;
+  const extra = typeof detail === "string" ? detail : JSON.stringify(detail);
+  return extra ? base + ": " + extra.slice(0, 200) : base;
+}
+
+/* ================================================================== helpers */
+
+function timer(env, name) {
+  return env.CHECKOUTS.get(env.CHECKOUTS.idFromName(name));
+}
+
+// What the store is allowed to see about a checkout: no phone, no cart.
+function view(rec) {
+  const r = rec.result || null;
+  return {
+    ok: true,
+    status: rec.status,
+    remaining_ms: rec.status === "armed" && rec.deadline ? Math.max(0, rec.deadline - Date.now()) : null,
+    purchased: !!rec.purchased,
+    result: r && {
+      ok: r.ok,
+      dry_run: !!r.dry_run,
+      error: r.error || null,
+      message: r.message || null,
+      aircall_status: r.aircall_status || null,
+      event_id: r.event_id || null
+    }
+  };
+}
+
+async function relay(res, cors) {
+  return new Response(res.body, {
+    status: res.status,
+    headers: Object.assign({ "Content-Type": "application/json; charset=utf-8" }, cors)
+  });
+}
 
 function json(obj, status, headers) {
   return new Response(JSON.stringify(obj), {
-    status,
-    headers: Object.assign({ "Content-Type": "application/json; charset=utf-8" }, headers)
+    status: status || 200,
+    headers: Object.assign({ "Content-Type": "application/json; charset=utf-8" }, headers || {})
   });
 }
 
@@ -190,17 +358,16 @@ function originAllowed(origin, env) {
   return allowed.some((a) => a.replace(/\/+$/, "") === origin);
 }
 
-function corsHeaders(origin, env) {
-  const h = {
+function corsHeaders(origin) {
+  // Echo the origin so the store can read error messages. Access is enforced by
+  // originAllowed() before anything happens, and by the phone allowlist.
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin"
   };
-  // Echo the origin so the store can read error messages. Access is enforced by
-  // originAllowed() before anything happens, and by the phone allowlist.
-  h["Access-Control-Allow-Origin"] = origin || "*";
-  return h;
 }
 
 function normalizePhone(v) {
@@ -217,20 +384,6 @@ function phoneAllowed(phone, env) {
   if (exact.includes(phone)) return { ok: true };
   if (prefixes.some((p) => p === "*" || phone.startsWith(p))) return { ok: true };
   return { ok: false, message: "This number is not on the demo allowlist" };
-}
-
-function rateLimitOk(phone, env) {
-  const max = clampInt(env.MAX_CALLS_PER_NUMBER_PER_HOUR, 1, 1000, 6);
-  const now = Date.now();
-  const recent = (recentCalls.get(phone) || []).filter((ts) => now - ts < 3600 * 1000);
-  recentCalls.set(phone, recent);
-  return recent.length < max;
-}
-
-function recordCall(phone) {
-  const recent = recentCalls.get(phone) || [];
-  recent.push(Date.now());
-  recentCalls.set(phone, recent);
 }
 
 function cleanText(v, max) {
@@ -250,25 +403,8 @@ function cleanContext(ctx, lang) {
   const out = {};
   const src = ctx && typeof ctx === "object" ? ctx : {};
   for (const key of CONTEXT_KEYS) {
-    const val = cleanText(src[key], key === "cart_items" || key === "shipping_note" ? 400 : 120);
-    out[key] = val;
+    out[key] = cleanText(src[key], key === "cart_items" || key === "shipping_note" ? 400 : 120);
   }
   out.language = lang;
   return out;
-}
-
-function explainAircallError(status, data, text) {
-  const detail = (data && (data.message || data.error || data.detail)) || "";
-  const hints = {
-    400: "Bad request (check the phone format or the context fields)",
-    401: "Unauthorized (check AIRCALL_API_ID and AIRCALL_API_TOKEN)",
-    403: "Forbidden (the API key may not have access to this agent)",
-    404: "Agent not found (check the agent ID and the API base URL)",
-    409: "Conflict (usually: no phone number is assigned to the outbound agent in the Aircall Dashboard)",
-    422: "Validation error from Aircall",
-    429: "Rate limited by Aircall"
-  };
-  const base = hints[status] || "Aircall returned HTTP " + status;
-  const extra = typeof detail === "string" ? detail : JSON.stringify(detail);
-  return extra ? base + ": " + extra.slice(0, 200) : base;
 }

@@ -80,7 +80,9 @@ export default {
     }
 
     const lang = body.lang === "fr" ? "fr" : "en";
-    const agentId = (lang === "fr" ? env.AGENT_ID_FR : env.AGENT_ID_EN) || env.AGENT_ID;
+    const dryRun = isTrue(env.DRY_RUN);
+    const agentId = (lang === "fr" ? env.AGENT_ID_FR : env.AGENT_ID_EN) || env.AGENT_ID ||
+      (dryRun ? "AGENT_ID_NOT_SET" : ""); // lets you test the store -> Worker link before the agents exist
     if (!agentId) {
       return json({ ok: false, error: "agent_not_configured", message: "Set AGENT_ID_EN / AGENT_ID_FR or AGENT_ID" }, 500, cors);
     }
@@ -101,7 +103,7 @@ export default {
     const base = String(env.AIRCALL_API_BASE || "https://api.aircall.io").replace(/\/+$/, "");
     const url = base + "/v1/outbound-calls/agents/" + encodeURIComponent(agentId);
 
-    if (isTrue(env.DRY_RUN)) {
+    if (dryRun) {
       console.log("DRY_RUN", JSON.stringify({ url, aircallRequest }));
       return json({ ok: true, dry_run: true, url, agent_id: agentId, request: aircallRequest }, 200, cors);
     }

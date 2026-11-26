@@ -3,3 +3,7 @@
 .dev.vars
 .wrangler/
 node_modules/
+
+# QR codes (may contain the demo passcode)
+qr-*.png
+qr-*.svg

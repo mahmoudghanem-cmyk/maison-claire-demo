@@ -25,7 +25,8 @@
  *                                       ALLOWED_PHONE_PREFIXES is set (open dialing on a public site).
  *   LEADS_ADMIN_KEY                     password for GET /leads.csv and DELETE /leads
  *   DRY_RUN                             "true" = build the Aircall request but never call
- * Plain vars (wrangler.toml): ALLOWED_ORIGINS, ABANDON_DELAY_SECONDS, AIRCALL_API_BASE,
+ * Plain vars (wrangler.toml): REQUIRE_PASSCODE ("false" skips DEMO_PASSCODE entirely),
+ *   ALLOWED_ORIGINS, ABANDON_DELAY_SECONDS, AIRCALL_API_BASE,
  *   EXPIRATION_SECONDS, MAX_CALLS_PER_NUMBER_PER_HOUR, MAX_CALLS_PER_HOUR (all numbers together)
  */
 
@@ -111,11 +112,14 @@ export default {
       return json({ ok: false, error: "unknown_action" }, 400, cors);
     }
 
-    // Calling any number of a country from a public page is only safe behind a passcode.
-    if (list(env.ALLOWED_PHONE_PREFIXES).length && !env.DEMO_PASSCODE) {
-      return json({ ok: false, error: "passcode_required", message: "ALLOWED_PHONE_PREFIXES is set, so the Worker also needs a DEMO_PASSCODE secret" }, 500, cors);
+    // Calling any number of a country from a public page is only safe behind a passcode,
+    // unless the operator deliberately opens it (REQUIRE_PASSCODE = "false", QR code stand)
+    // and relies on the country list and the hourly caps instead.
+    const passcodeOn = String(env.REQUIRE_PASSCODE || "true").toLowerCase() !== "false";
+    if (passcodeOn && list(env.ALLOWED_PHONE_PREFIXES).length && !env.DEMO_PASSCODE) {
+      return json({ ok: false, error: "passcode_required", message: "ALLOWED_PHONE_PREFIXES is set, so the Worker also needs a DEMO_PASSCODE secret (or REQUIRE_PASSCODE = \"false\")" }, 500, cors);
     }
-    if (env.DEMO_PASSCODE && String(body.passcode || "") !== String(env.DEMO_PASSCODE)) {
+    if (passcodeOn && env.DEMO_PASSCODE && String(body.passcode || "") !== String(env.DEMO_PASSCODE)) {
       return json({ ok: false, error: "invalid_passcode", message: "Wrong or missing demo passcode" }, 401, cors);
     }
 

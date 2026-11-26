@@ -14,8 +14,11 @@ ALLOWED_ORIGINS = "https://mahmoudghanem-cmyk.github.io,http://localhost:8080"
 ABANDON_DELAY_SECONDS = "15"
 EXPIRATION_SECONDS = "300"
 MAX_CALLS_PER_NUMBER_PER_HOUR = "6"
-MAX_CALLS_PER_HOUR = "60"          # all numbers together: caps the cost if the passcode leaks
-# Booth mode: visitors type their own number. Europe-wide. DEMO_PASSCODE is then required.
+MAX_CALLS_PER_HOUR = "60"          # all numbers together: caps the cost of misuse
+# Booth mode: visitors type their own number. Europe-wide.
+# QR code stand: no passcode, so anyone with the link can trigger calls (within the caps above).
+# Set to "true" to require DEMO_PASSCODE again (the secret is still set).
+REQUIRE_PASSCODE = "false"
 ALLOWED_PHONE_PREFIXES = "+33,+44,+32,+41,+34,+49,+39,+31,+353,+352"
 
 [[durable_objects.bindings]]

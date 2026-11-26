@@ -58,6 +58,12 @@
       if (d >= 5 && d <= 3600) ls.set(K.delay, d);
     }
     if (params.has("demo")) ls.set(K.panel, params.get("demo") === "0" ? "hidden" : "auto");
+    // Panel switched off in config (QR code stand): no leftover panel or delay from an earlier
+    // presenter session on this device. ?demo=1 and ?delay=N still work while they are in the URL.
+    if (CFG.showDemoPanel === false) {
+      if (!params.has("demo")) ls.del(K.panel);
+      if (!params.has("delay")) ls.del(K.delay);
+    }
     if (params.has("lang") && /^(en|fr)$/.test(params.get("lang"))) ls.set(K.lang, params.get("lang"));
     if (params.has("passcode")) { ls.set(K.passcode, params.get("passcode")); params.delete("passcode"); strip = true; }
     if (strip) {
@@ -606,6 +612,7 @@
             </div>
           </div>
           <p class="help">${t("phone_help")}</p>
+          ${askConsent() ? `
           <label class="check" data-field="consent">
             <input type="checkbox" name="consent" ${c.consent ? "checked" : ""}>
             <span>${t("consent", { store: esc(CFG.storeName) })}</span>
@@ -615,8 +622,8 @@
           <label class="check">
             <input type="checkbox" name="followUp" ${c.followUp ? "checked" : ""}>
             <span>${t("follow_up", { company: esc(CFG.boothCompany || "") })}</span>
-          </label>
-          <p class="help">${t("booth_notice", { company: esc(CFG.boothCompany || "") })}</p>` : ""}
+          </label>` : ""}` : ""}
+          ${CFG.boothMode ? `<p class="help">${t("booth_notice", { company: esc(CFG.boothCompany || "") })}</p>` : ""}
         </div>
         <div class="form-actions">
           <a href="#/" data-open-cart>‹ ${t("return_cart")}</a>
@@ -783,7 +790,7 @@
     }
     if (flash) msg = esc(flash);
     const delay = recovery.delay();
-    const delays = [10, 20, 30, 45, 60, 120];
+    const delays = [10, 15, 20, 30, 45, 60, 120];
     if (delays.indexOf(delay) === -1) delays.push(delay);
     const delayOpts = delays.sort((a, b) => a - b).map((d) => `<option value="${d}" ${d === delay ? "selected" : ""}>${d} s</option>`).join("");
     const ring = r.status === "armed"
@@ -904,6 +911,8 @@
   }
 
   /* ------------------------------------------------------------------ events */
+  function askConsent() { return CFG.askConsent !== false; }
+
   function readContactForm(form) {
     const fd = new FormData(form);
     return {
@@ -912,8 +921,9 @@
       email: String(fd.get("email") || "").trim().slice(0, 120),
       country: String(fd.get("country") || "FR"),
       phoneLocal: String(fd.get("phoneLocal") || "").trim().slice(0, 30),
-      consent: fd.get("consent") === "on",
-      followUp: fd.get("followUp") === "on"
+      // no checkboxes on a QR code stand: the notice under the phone field tells visitors they will be called
+      consent: askConsent() ? fd.get("consent") === "on" : true,
+      followUp: askConsent() ? fd.get("followUp") === "on" : false
     };
   }
 

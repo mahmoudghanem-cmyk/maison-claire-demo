@@ -11,7 +11,7 @@ workers_dev = true
 
 [vars]
 ALLOWED_ORIGINS = "https://mahmoudghanem-cmyk.github.io,http://localhost:8080"
-ABANDON_DELAY_SECONDS = "30"
+ABANDON_DELAY_SECONDS = "15"
 EXPIRATION_SECONDS = "300"
 MAX_CALLS_PER_NUMBER_PER_HOUR = "6"
 MAX_CALLS_PER_HOUR = "60"          # all numbers together: caps the cost if the passcode leaks

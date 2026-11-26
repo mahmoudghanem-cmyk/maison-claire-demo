@@ -9,7 +9,7 @@ A clean, Shopify-style demo storefront (English / French) that triggers an **Air
    │     → the store sends the cart to the Worker right away ("arm")
    ▼
  Cloudflare Worker  (holds the Aircall API key, allowlist, passcode)
-   │  starts a 30 s timer on the server (a Durable Object alarm), one per checkout
+   │  starts a 15 s timer on the server (a Durable Object alarm), one per checkout
    │  any change to the cart or language restarts the timer; paying cancels it
    ▼
  timer ends, no order  (= abandoned checkout, even if the tab was closed)
@@ -132,10 +132,10 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 
 1. Open the store and pick **EN** or **FR** in the header. The call uses the language the shopper used.
 2. Add a couple of products and click **Check out**.
-3. Enter a first name and an allow-listed mobile number and tick the call consent box. The timer starts on the server as soon as all three are filled in; **Continue to payment** is optional.
-4. Stop, or close the tab. The demo panel counts down from 30 s and then shows **Call requested**. Your phone rings either way.
+3. Enter a first name and an allow-listed mobile number (and tick the consent box if `askConsent` is on). The timer starts on the server as soon as they are filled in; **Continue to payment** is optional.
+4. Stop, or close the tab. After 15 s (the demo panel, if shown, counts down and then shows **Call requested**) your phone rings.
 5. Talk to the agent (see the question ideas in the agent brief). Then go back, apply **MERCI10** and complete the order.
-6. Click **Reset demo** in the panel before the next run.
+6. Click **Reset demo** in the panel before the next run (on a shared device).
 
 **Per-visit URL options**
 
@@ -143,22 +143,22 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 | --- | --- |
 | `?delay=10` | Countdown in seconds (5 to 3600). Also adjustable in the panel. |
 | `?lang=fr` | Open the store in French. |
-| `?demo=0` | Hide the presenter panel (for a "real customer" look). `?demo=1` brings it back. |
+| `?demo=1` | Show the presenter panel (off by default: `showDemoPanel: false`). `?demo=0` hides it when it is on. |
 | `?passcode=xxxx` | Save the Worker passcode in this browser. |
 
 The panel also has **Call now**, which skips the countdown. It's a reliable fallback during a live demo, and it can ring again after an earlier attempt.
 
-> **Closing the tab still calls.** The timer lives in the Worker, not in the browser. Editing the cart or switching language restarts it, completing the order or unticking consent cancels it, and each checkout gets at most one automatic call (**Call now** can ring again).
+> **Closing the tab still calls.** The timer lives in the Worker, not in the browser. Editing the cart or switching language restarts it, completing the order (or unticking consent, when shown) cancels it, and each checkout gets at most one automatic call (**Call now** can ring again).
 
 ## At an event stand
 
-Visitors fill in their own name, number and cart on the stand's tablet or laptop, then get called by the agent: they live the experience as the customer.
+Visitors scan a QR code with their own phone, fill in their name, number and cart, and get called by the agent about 15 seconds later: they live the experience as the customer. The current `config.js` is set up for this: no presenter panel (`showDemoPanel: false`), no checkboxes (`askConsent: false`, the notice under the phone field says they will be called), 15 s delay.
 
-- **Unlock the device once** by opening `https://<your-user>.github.io/<repo>/?passcode=<DEMO_PASSCODE>&demo=0`. The passcode is saved in that browser only and removed from the address bar. Anyone else who finds the site can't trigger calls.
-- **Between visitors**, click **Reset demo** in the panel (open it with `?demo=1`), or let the visitor complete the order. With `boothMode: true` in `config.js`, the device then forgets the visitor's details so the next person never sees them.
-- **Visitor list**: open `https://cart-recovery-call.<your-subdomain>.workers.dev/leads.csv`, enter any user name and `LEADS_ADMIN_KEY` as the password. You get a CSV (opens in Excel or Google Sheets) with time, name, phone, email, language, cart, call outcome, whether they bought, and whether they ticked the optional follow-up box. Only numbers that passed the passcode and country checks are saved.
+- **QR code URL:** `https://<your-user>.github.io/<repo>/?passcode=<DEMO_PASSCODE>` (add `&lang=fr` for a French-first stand). The passcode is saved in the visitor's browser and removed from the address bar. Anyone who scans the code can trigger calls, within the country and hourly limits; anyone who only finds the bare site can't.
+- **On a shared tablet instead**, open the same URL with `&demo=1` to get the panel and its **Reset demo** button between visitors. With `boothMode: true`, completing the order or resetting makes the device forget the visitor's details.
+- **Visitor list**: open `https://cart-recovery-call.<your-subdomain>.workers.dev/leads.csv`, enter any user name and `LEADS_ADMIN_KEY` as the password. You get a CSV (opens in Excel or Google Sheets) with time, name, phone, email, language, cart, call outcome, whether they bought, and whether they ticked the optional follow-up box (always `false` while `askConsent` is off). Only numbers that passed the passcode and country checks are saved.
 - **Erase the list** after the event: `curl -u admin:<LEADS_ADMIN_KEY> -X DELETE https://cart-recovery-call.<your-subdomain>.workers.dev/leads`
-- **Privacy:** the checkout tells visitors their details are saved, and the follow-up opt-in is separate from the call consent. Only contact people afterwards who ticked `follow_up_ok`, and check the wording with your privacy team before the event.
+- **Privacy:** the checkout tells visitors they will be called and that their details are saved. With the checkboxes off there is no follow-up opt-in, so don't use the list for marketing without another basis (e.g. a badge scan). Check the wording with your privacy team before the event.
 
 ## Troubleshooting
 
@@ -181,7 +181,7 @@ Worker logs: `npx wrangler tail` from `worker/`, or Cloudflare dashboard → you
 - **Aircall credentials never reach the browser.** They live only in Worker secrets.
 - The Worker **refuses to dial** any number not on `ALLOWED_NUMBERS` / `ALLOWED_PHONE_PREFIXES`, so the public page can't be used to call strangers. Keep the allowlist tight.
 - Every call uses a unique `idempotency_key` per checkout, so a retry never double-dials.
-- The checkout asks for **explicit consent** to be called. Keep that in any real version.
+- Turn `askConsent` back on for anything other than a stand where visitors call themselves: a real store needs **explicit consent** to be called.
 - **France:** French mobile (06, 07) and geographic (01 to 05, 09) numbers can't be used as the AI agent's outbound number (NPV only). Check your from-number before demoing to French numbers.
 - The store is a demo: no real payment fields, no orders, `noindex`.
 

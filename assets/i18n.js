@@ -68,7 +68,7 @@ window.I18N = {
     err_phone: "Enter a valid mobile number",
     err_consent: "Please tick the box to continue",
     follow_up: "Optional: {company} may contact me after the event.",
-    booth_notice: "This store is a {company} demo. Your name, number, email and cart are saved so the voice agent can call you and so the {company} team can see the demo results.",
+    booth_notice: "This store is a {company} demo: a few seconds after you enter your number, our voice agent will call you about your cart. Your name, number, email and cart are saved so the agent can call you and so the {company} team can see the demo results.",
 
     payment_title: "Payment",
     payment_note: "This is a demo store. No payment will be taken and no order will be shipped.",
@@ -184,7 +184,7 @@ window.I18N = {
     err_phone: "Saisissez un numéro de mobile valide",
     err_consent: "Merci de cocher la case pour continuer",
     follow_up: "Facultatif : {company} peut me recontacter après l'événement.",
-    booth_notice: "Cette boutique est une démo {company}. Vos nom, numéro, e-mail et panier sont enregistrés pour que l'agent vocal puisse vous appeler et pour que l'équipe {company} voie les résultats de la démo.",
+    booth_notice: "Cette boutique est une démo {company} : quelques secondes après la saisie de votre numéro, notre agent vocal vous appellera au sujet de votre panier. Vos nom, numéro, e-mail et panier sont enregistrés pour que l'agent puisse vous appeler et pour que l'équipe {company} voie les résultats de la démo.",
 
     payment_title: "Paiement",
     payment_note: "Ceci est une boutique de démonstration. Aucun paiement ne sera prélevé et aucune commande ne sera expédiée.",

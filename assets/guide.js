@@ -48,6 +48,9 @@
       chk_first: "First name",
       chk_first_todo: "Emma greets you by name.",
       chk_first_ok: "Emma will say “Hi {name}”.",
+      chk_last: "Last name",
+      chk_last_todo: "Optional. Emma already has it, so she won't ask.",
+      chk_last_ok: "Saved with the call. Emma won't need to ask.",
       chk_phone: "Mobile number",
       chk_phone_todo: "A mobile that can pick up in the next minute.",
       chk_phone_bad: "That number looks incomplete.",
@@ -91,6 +94,7 @@
       b_cart: "Open cart",
       b_checkout: "Check out",
       b_first: "First name",
+      b_last: "Last name",
       b_phone: "Mobile phone",
       b_tab: "Click outside or Tab",
       b_not_yet: "Not yet",
@@ -203,6 +207,9 @@
       chk_first: "Prénom",
       chk_first_todo: "Emma vous appelle par votre prénom.",
       chk_first_ok: "Emma dira « Bonjour {name} ».",
+      chk_last: "Nom",
+      chk_last_todo: "Facultatif. Emma l'a déjà, elle ne vous le demandera pas.",
+      chk_last_ok: "Enregistré avec l'appel. Emma n'aura pas à le demander.",
       chk_phone: "Numéro de mobile",
       chk_phone_todo: "Un mobile qui peut décrocher dans la minute.",
       chk_phone_bad: "Ce numéro semble incomplet.",
@@ -246,6 +253,7 @@
       b_cart: "Ouvrir le panier",
       b_checkout: "Passer commande",
       b_first: "Prénom",
+      b_last: "Nom",
       b_phone: "Téléphone mobile",
       b_tab: "Cliquez ailleurs ou Tab",
       b_not_yet: "Pas encore",
@@ -345,7 +353,7 @@
   /* ------------------------------------------------------------------ markup */
   const HEADSET = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg>';
   const STEP_LIS = [1, 2, 3, 4, 5].map((n) => '<li><span class="gd-dot"></span><span class="gd-lab" data-gd="s' + n + '"></span></li>').join("");
-  const CHECK_LIS = [1, 2].map((n) => '<li><span class="gd-tick"></span><div><strong data-out="c' + n + 't"></strong><span data-out="c' + n + 'd"></span></div></li>').join("");
+  const CHECK_LIS = [1, 2, 3].map((n) => '<li><span class="gd-tick"></span><div><strong data-out="c' + n + 't"></strong><span data-out="c' + n + 'd"></span></div></li>').join("");
 
   // The five backstage events. "knows" carries Emma's opening line, "call" carries the payload view.
   const TL_EXTRA = {
@@ -486,13 +494,19 @@
   // What is typed in the checkout form right now (it is only on that page).
   function formState() {
     const first = document.getElementById("f-first");
+    const last = document.getElementById("f-last");
     const phone = document.getElementById("f-phone");
     const country = document.getElementById("f-country");
     if (!first || !phone) return null;
+    const act = document.activeElement ? document.activeElement.id : "";
     return {
       name: first.value.trim(),
+      last: last ? last.value.trim() : "",
       phoneRaw: phone.value.trim(),
-      masked: API.phonePreview(country ? country.value : "FR", phone.value)
+      masked: API.phonePreview(country ? country.value : "FR", phone.value),
+      focus: act, // which field the visitor is in right now, so the spotlight never leaves a field being typed in
+      // the last name is optional: once the visitor has moved on to a later field, stop pointing at it
+      pastLast: act === "f-email" || act === "f-country" || act === "f-phone"
     };
   }
 
@@ -565,6 +579,7 @@
         const typed = form ? form.phoneRaw : "";
         m.check = [
           { done: !!name, title: t("chk_first"), desc: name ? t("chk_first_ok", { name: name }) : t("chk_first_todo") },
+          { done: !!(form && form.last), title: t("chk_last"), desc: form && form.last ? t("chk_last_ok") : t("chk_last_todo") },
           {
             done: !!masked,
             warn: !masked && !!typed,
@@ -826,7 +841,7 @@
         };
         return pick(onScreen("#app .card a.btn"), "b_options")
           || pick(onScreen("#app [data-add]"), "b_add")
-          || pick(onScreen("#app .hero a.btn"), "b_browse")
+          || (v.route.a === "shop" ? null : pick(onScreen("#app .hero a.btn"), "b_browse")) // already clicked once: the store is taking them to the collection
           || pick(firstVisible("#app .card a.btn"), "b_options")
           || pick(firstVisible("#app [data-add]"), "b_add");
       }
@@ -834,7 +849,11 @@
         return toCheckout();
       case 3:
         if (!form) return null;
-        if (!form.name) return pick(document.getElementById("f-first"), "b_first");
+        // first name, then last name, then the phone. Stay on a field while the visitor is typing in it.
+        if (!form.name || form.focus === "f-first") return pick(document.getElementById("f-first"), "b_first");
+        if (document.getElementById("f-last") && (form.focus === "f-last" || (!form.last && !form.pastLast && !form.phoneRaw))) {
+          return pick(document.getElementById("f-last"), "b_last");
+        }
         if (!form.masked) return pick(document.getElementById("f-phone"), "b_phone");
         return pick(document.getElementById("f-phone"), "b_tab");
       case 4:
@@ -890,6 +909,23 @@
   }
 
   let scrollTimer = 0;
+  // Run fn once the page has stopped scrolling: two checks in a row, 150 ms apart, with no movement
+  // (at the earliest 500 ms after the route change). Gives up waiting after about 4 seconds.
+  function settleThen(fn) {
+    clearTimeout(scrollTimer);
+    let lastY = window.scrollY;
+    let still = 0;
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      const y = window.scrollY;
+      still = Math.abs(y - lastY) < 1 ? still + 1 : 0;
+      lastY = y;
+      if (still >= 2 || tries > 25) { fn(); return; }
+      scrollTimer = setTimeout(tick, 150);
+    };
+    scrollTimer = setTimeout(tick, 350);
+  }
   function ensureVisible() {
     const el = spotEl;
     if (!el || !el.isConnected || !visible(el)) return;
@@ -912,10 +948,16 @@
     place(); // right away, then keep following for a few frames
     if (tgt.key !== spotKey) {
       spotKey = tgt.key;
-      // The store jumps to the top of the page after a route change, which would cancel a scroll
-      // started right now: wait for it to settle, then bring the target on screen.
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(ensureVisible, 350);
+      // The store moves the page after a route change (it jumps to the top, or scrolls down to the
+      // collection when the visitor clicks "Découvrir la collection"). Wait until the page has stopped
+      // moving, look at what is on screen again, and only then bring the target into view if it still isn't.
+      // Scrolling for the old target while the store is still scrolling pulls the visitor back to it,
+      // and their click looks like it did nothing.
+      settleThen(() => {
+        const key = spotKey;
+        update(); // the target may have changed while the page moved
+        if (spotKey === key) ensureVisible();
+      });
       schedule(900);
     } else {
       schedule(0);
@@ -1038,6 +1080,8 @@
   // typing in the checkout form updates the coach before the store has captured anything
   document.addEventListener("input", update);
   document.addEventListener("change", update);
+  // moving from one field to the next moves the spotlight with the visitor
+  document.addEventListener("focusin", update);
   window.addEventListener("resize", () => schedule(0));
   // the cart drawer slides in: follow it until it has stopped
   document.addEventListener("transitionend", () => schedule(0), true);

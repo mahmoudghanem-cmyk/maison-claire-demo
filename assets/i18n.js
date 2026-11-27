@@ -20,7 +20,7 @@ window.I18N = {
     perk_secure: "Secure checkout",
 
     collection_title: "The collection",
-    collection_sub: "Eight everyday essentials. One simple price each, no sizes, no fuss.",
+    collection_sub: "Eight pieces for the home, from everyday essentials to solid wood furniture.",
 
     about_title: "Made to be used every day",
     about_text: "We keep our collection small on purpose: a handful of useful objects, made from honest materials, that look good on the shelf and even better in use.",
@@ -33,6 +33,9 @@ window.I18N = {
     back_to_shop: "Back to shop",
     details: "Details",
     product_shipping: "Ships in 1 to 2 business days. Free returns within 30 days.",
+    furniture_delivery: "Free two-person delivery to the room of your choice. Free returns within 30 days.",
+    from_price: "From {amount}",
+    choose_options: "Choose options",
     not_found: "This product doesn't exist.",
 
     cart_title: "Your cart",
@@ -136,7 +139,7 @@ window.I18N = {
     perk_secure: "Paiement sécurisé",
 
     collection_title: "La collection",
-    collection_sub: "Huit essentiels du quotidien. Un prix simple pour chacun, sans taille ni option.",
+    collection_sub: "Huit pièces pour la maison, des essentiels du quotidien au mobilier en bois massif.",
 
     about_title: "Faits pour le quotidien",
     about_text: "Notre collection est volontairement courte : quelques objets utiles, fabriqués dans des matières honnêtes, beaux sur une étagère et encore meilleurs à l'usage.",
@@ -149,6 +152,9 @@ window.I18N = {
     back_to_shop: "Retour à la boutique",
     details: "Détails",
     product_shipping: "Expédié sous 1 à 2 jours ouvrés. Retours gratuits sous 30 jours.",
+    furniture_delivery: "Livraison offerte par deux livreurs jusqu'à la pièce de votre choix. Retours gratuits sous 30 jours.",
+    from_price: "À partir de {amount}",
+    choose_options: "Voir les options",
     not_found: "Ce produit n'existe pas.",
 
     cart_title: "Votre panier",

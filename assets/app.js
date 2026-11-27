@@ -82,6 +82,7 @@
     panel: ls.get(K.panel, CFG.showDemoPanel === false ? "hidden" : "auto"),
     draft: null,
     pageQty: 1,
+    pageOpts: {},
     lastRoute: null
   };
 
@@ -89,7 +90,38 @@
     if (!Array.isArray(cart)) return [];
     return cart
       .filter((l) => l && PRODUCTS[l.id] && Number.isInteger(l.qty) && l.qty > 0)
-      .map((l) => ({ id: l.id, qty: Math.min(l.qty, 20) }));
+      .map((l) => {
+        const v = variantOf(PRODUCTS[l.id], l.v);
+        return v ? { id: l.id, qty: Math.min(l.qty, 20), v: v } : { id: l.id, qty: Math.min(l.qty, 20) };
+      });
+  }
+
+  /* ---------------------------------------------- product options (furniture) */
+  // A cart line is { id, qty } or, for a product with options, { id, qty, v: { wood: "oak", size: "180" } }.
+  function variantOf(p, v) {
+    if (!p.options) return null;
+    const out = {};
+    p.options.forEach((o) => {
+      const want = v && v[o.key];
+      out[o.key] = o.values.some((x) => x.id === want) ? want : o.values[0].id;
+    });
+    return out;
+  }
+  function chosenValues(p, v) {
+    return (p.options || []).map((o) => o.values.find((x) => x.id === v[o.key]) || o.values[0]);
+  }
+  function unitPrice(p, v) {
+    return p.price + (v ? chosenValues(p, v).reduce((s, x) => s + (x.delta || 0), 0) : 0);
+  }
+  const linePrice = (l) => unitPrice(PRODUCTS[l.id], l.v);
+  const lineKey = (l) => l.id + (l.v ? ":" + PRODUCTS[l.id].options.map((o) => l.v[o.key]).join("-") : "");
+  const artOf = (p, v) => (v && p.artFor ? p.artFor(v) : p.art);
+  function variantLabel(p, v) {
+    return v ? chosenValues(p, v).map((x) => x.name[state.lang]).join(" · ") : "";
+  }
+  function leadTime(p, v) {
+    const x = v && chosenValues(p, v).find((y) => y.lead);
+    return x ? x.lead[state.lang] : "";
   }
 
   /* ------------------------------------------------------------------ helpers */
@@ -113,7 +145,7 @@
   }
 
   function totals() {
-    const subtotal = state.cart.reduce((s, l) => s + PRODUCTS[l.id].price * l.qty, 0);
+    const subtotal = state.cart.reduce((s, l) => s + linePrice(l) * l.qty, 0);
     const count = state.cart.reduce((s, l) => s + l.qty, 0);
     const discount = state.discount === CFG.discountCode ? Math.round(subtotal * CFG.discountPercent) / 100 : 0;
     const shipping = subtotal === 0 || subtotal >= CFG.freeShippingThreshold ? 0 : CFG.shippingFee;
@@ -160,7 +192,10 @@
     const parts = state.cart.map((l) => {
       const p = PRODUCTS[l.id];
       const forms = p.spoken[lang];
-      return spokenCount(l.qty, lang, p.gender) + " " + (l.qty > 1 ? forms[1] : forms[0]);
+      const vals = l.v ? chosenValues(p, l.v) : [];
+      const pre = vals.map((x) => x.pre && x.pre[lang]).filter(Boolean);
+      const post = vals.map((x) => x.spoken[lang]).filter(Boolean);
+      return [spokenCount(l.qty, lang, p.gender)].concat(pre, [l.qty > 1 ? forms[1] : forms[0]], post).join(" ");
     });
     if (parts.length <= 1) return parts.join("");
     return parts.slice(0, -1).join(", ") + (lang === "fr" ? " et " : " and ") + parts[parts.length - 1];
@@ -379,17 +414,20 @@
     renderCartBits();
     recovery.onCartChange();
   }
-  function addToCart(id, qty) {
-    const line = state.cart.find((l) => l.id === id);
+  function addToCart(id, qty, v) {
+    const add = { id: id, qty: qty };
+    const variant = variantOf(PRODUCTS[id], v);
+    if (variant) add.v = variant;
+    const line = state.cart.find((l) => lineKey(l) === lineKey(add));
     if (line) line.qty = Math.min(line.qty + qty, 20);
-    else state.cart.push({ id: id, qty: qty });
+    else state.cart.push(add);
     saveCart();
     openCart();
   }
-  function setQty(id, qty) {
-    const line = state.cart.find((l) => l.id === id);
+  function setQty(key, qty) {
+    const line = state.cart.find((l) => lineKey(l) === key);
     if (!line) return;
-    if (qty <= 0) state.cart = state.cart.filter((l) => l.id !== id);
+    if (qty <= 0) state.cart = state.cart.filter((l) => l !== line);
     else line.qty = Math.min(qty, 20);
     saveCart();
     if (document.body.classList.contains("is-checkout")) render();
@@ -464,9 +502,11 @@
         <div class="card-body">
           <a class="card-title" href="#/product/${p.id}">${esc(name(p))}</a>
           <p class="card-short">${esc(p.short[state.lang])}</p>
-          <p class="card-price">${money(p.price)}</p>
+          <p class="card-price">${p.options ? t("from_price", { amount: money(p.price) }) : money(p.price)}</p>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" data-add="${p.id}">${t("add_to_cart")}</button>
+        ${p.options
+          ? `<a class="btn btn-outline btn-sm" href="#/product/${p.id}">${t("choose_options")}</a>`
+          : `<button type="button" class="btn btn-outline btn-sm" data-add="${p.id}">${t("add_to_cart")}</button>`}
       </article>`;
   }
 
@@ -476,16 +516,35 @@
       return `<div class="container product"><a class="back-link" href="#/shop">${ICON.back}${t("back_to_shop")}</a><p>${t("not_found")}</p></div>`;
     }
     const specs = p.details[state.lang].map((d) => `<div><dt>${esc(d[0])}</dt><dd>${esc(d[1])}</dd></div>`).join("");
+    const v = variantOf(p, state.pageOpts);
+    const picker = v ? p.options.map((o) => {
+      const cur = o.values.find((x) => x.id === v[o.key]);
+      const btns = o.values.map((x) => {
+        const on = x.id === v[o.key];
+        const label = esc(x.name[state.lang]) + (x.delta ? " (+" + money(x.delta) + ")" : "");
+        return x.swatch
+          ? `<button type="button" class="swatch${on ? " on" : ""}" data-opt="${o.key}" data-val="${x.id}" aria-pressed="${on}" aria-label="${label}" title="${label}"><span style="background:${x.swatch}"></span></button>`
+          : `<button type="button" class="opt-pill${on ? " on" : ""}" data-opt="${o.key}" data-val="${x.id}" aria-pressed="${on}">${label}</button>`;
+      }).join("");
+      return `<div class="opt-group" role="group" aria-label="${esc(o.name[state.lang])}">
+          <span class="qty-label">${esc(o.name[state.lang])}: <strong>${esc(cur.name[state.lang])}</strong></span>
+          <div class="opt-values">${btns}</div>
+        </div>`;
+    }).join("") : "";
+    const lead = leadTime(p, v);
+    const shipLine = lead ? esc(lead) + ". " + t("furniture_delivery") : t("product_shipping");
+    const desc = [].concat(p.description[state.lang]).map((d) => `<p class="product-desc">${esc(d)}</p>`).join("");
     const related = CATALOG.filter((x) => x.id !== id).slice(0, 4).map(card).join("");
     return `
       <div class="container product">
         <a class="back-link" href="#/shop">${ICON.back}${t("back_to_shop")}</a>
         <div class="product-grid">
-          <div class="product-media">${p.art}</div>
+          <div class="product-media">${artOf(p, v)}</div>
           <div class="product-info">
             <h1>${esc(name(p))}</h1>
-            <p class="product-price">${money(p.price)}</p>
+            <p class="product-price">${money(unitPrice(p, v))}</p>
             <p class="lead">${esc(p.short[state.lang])}</p>
+            ${picker}
             <span class="qty-label">${t("quantity")}</span>
             <div class="stepper">
               <button type="button" data-page-qty="-1" aria-label="${t("decrease")}">−</button>
@@ -495,8 +554,8 @@
             <div class="product-actions">
               <button type="button" class="btn btn-block" data-add-page="${p.id}">${t("add_to_cart")}</button>
             </div>
-            <p class="product-ship">${ICON.truck}<span>${t("product_shipping")}</span></p>
-            <p class="product-desc">${esc(p.description[state.lang])}</p>
+            <p class="product-ship">${ICON.truck}<span>${shipLine}</span></p>
+            ${desc}
             <dl class="specs">${specs}</dl>
           </div>
         </div>
@@ -510,11 +569,12 @@
   function summaryLines() {
     return state.cart.map((l) => {
       const p = PRODUCTS[l.id];
+      const vl = variantLabel(p, l.v);
       return `
         <div class="sum-line">
-          <div class="sum-thumb"><div>${p.art}</div><span class="qty">${l.qty}</span></div>
-          <span class="sum-name">${esc(name(p))}</span>
-          <span>${money(p.price * l.qty)}</span>
+          <div class="sum-thumb"><div>${artOf(p, l.v)}</div><span class="qty">${l.qty}</span></div>
+          <span class="sum-name">${esc(name(p))}${vl ? `<span class="variant">${esc(vl)}</span>` : ""}</span>
+          <span>${money(linePrice(l) * l.qty)}</span>
         </div>`;
     }).join("");
   }
@@ -706,21 +766,24 @@
     const pct = Math.min(100, Math.round((tt.subtotal / CFG.freeShippingThreshold) * 100));
     const lines = state.cart.map((l) => {
       const p = PRODUCTS[l.id];
+      const key = lineKey(l);
+      const vl = variantLabel(p, l.v);
       return `
         <div class="line">
-          <a class="line-media" href="#/product/${p.id}" data-close-cart aria-label="${esc(name(p))}">${p.art}</a>
+          <a class="line-media" href="#/product/${p.id}" data-close-cart aria-label="${esc(name(p))}">${artOf(p, l.v)}</a>
           <div>
             <a class="line-title" href="#/product/${p.id}" data-close-cart>${esc(name(p))}</a>
-            <span class="line-price">${money(p.price)}</span>
+            ${vl ? `<span class="line-variant">${esc(vl)}</span>` : ""}
+            <span class="line-price">${money(linePrice(l))}</span>
             <div class="stepper sm">
-              <button type="button" data-qty="${p.id}" data-delta="-1" aria-label="${t("decrease")}">−</button>
+              <button type="button" data-qty="${key}" data-delta="-1" aria-label="${t("decrease")}">−</button>
               <span>${l.qty}</span>
-              <button type="button" data-qty="${p.id}" data-delta="1" aria-label="${t("increase")}">+</button>
+              <button type="button" data-qty="${key}" data-delta="1" aria-label="${t("increase")}">+</button>
             </div>
           </div>
           <div class="line-end">
-            <span>${money(p.price * l.qty)}</span>
-            <button type="button" class="link-btn" data-remove="${p.id}">${t("remove")}</button>
+            <span>${money(linePrice(l) * l.qty)}</span>
+            <button type="button" class="link-btn" data-remove="${key}">${t("remove")}</button>
           </div>
         </div>`;
     }).join("");
@@ -884,7 +947,7 @@
     const r = route();
     const key = r.a + "/" + r.b;
     const changed = key !== state.lastRoute;
-    if (changed && r.a === "product") state.pageQty = 1;
+    if (changed && r.a === "product") { state.pageQty = 1; state.pageOpts = {}; }
     document.body.classList.toggle("is-checkout", r.a === "checkout" || r.a === "thank-you");
     applyStaticI18n();
 
@@ -1028,8 +1091,16 @@
     }
     if (el.hasAttribute("data-add-page")) {
       const p = PRODUCTS[el.getAttribute("data-add-page")];
-      addToCart(p.id, state.pageQty);
+      addToCart(p.id, state.pageQty, state.pageOpts);
       toast(t("added") + " · " + name(p));
+      return;
+    }
+    if (el.hasAttribute("data-opt")) {
+      const k = el.getAttribute("data-opt"), val = el.getAttribute("data-val");
+      state.pageOpts[k] = val;
+      render();
+      const back = document.querySelector(`[data-opt="${k}"][data-val="${val}"]`);
+      if (back) back.focus();
       return;
     }
     if (el.hasAttribute("data-page-qty")) {
@@ -1039,9 +1110,9 @@
       return;
     }
     if (el.hasAttribute("data-qty")) {
-      const id = el.getAttribute("data-qty");
-      const line = state.cart.find((l) => l.id === id);
-      if (line) setQty(id, line.qty + parseInt(el.getAttribute("data-delta"), 10));
+      const key = el.getAttribute("data-qty");
+      const line = state.cart.find((l) => lineKey(l) === key);
+      if (line) setQty(key, line.qty + parseInt(el.getAttribute("data-delta"), 10));
       return;
     }
     if (el.hasAttribute("data-remove")) { setQty(el.getAttribute("data-remove"), 0); return; }

@@ -2,7 +2,9 @@
  * Product catalogue (English + French).
  *
  * Products were chosen to be easy for a voice agent in both languages:
- *  - one variant each (no sizes, colours or options to clarify)
+ *  - small items have one variant each (no sizes, colours or options to clarify)
+ *  - two furniture pieces (dining table, armchair) have options, so the agent can be
+ *    tested on harder questions: wood, fabric, sizes, weights, lead times
  *  - plain everyday nouns that translate one to one (mug = tasse, candle = bougie)
  *  - no brand names, model numbers or acronyms
  *  - whole euro prices, so totals are said cleanly ("49 euros")
@@ -10,6 +12,12 @@
  * "spoken" holds singular/plural forms used to build the sentence the agent
  * reads, e.g. "two ceramic mugs and one wool blanket".
  * "gender" is the French grammatical gender, used for "un" / "une".
+ *
+ * "options" (furniture only): each value adds "delta" euros to the base "price" (keep it a
+ * multiple of 10 so a 10 percent discount stays a whole number), carries a "spoken" phrase
+ * appended to the item in the agent's cart sentence ("pre" goes before the noun instead),
+ * and may carry a "lead" time. "artFor"
+ * redraws the picture for the chosen values.
  */
 (function () {
   const svg = (bg, body) =>
@@ -59,28 +67,6 @@
       <path d="M210 134a30 30 0 0 1 30 30v128a30 30 0 0 1-30 30z" fill="#4A6C72"/>
       <rect x="173" y="158" width="9" height="138" rx="4.5" fill="#fff" opacity=".22"/>`),
 
-    tote: svg("#EFE7D7", `
-      <ellipse cx="200" cy="330" rx="110" ry="11" fill="#000" opacity=".07"/>
-      <path d="M170 182c0-84 60-84 60 0" fill="none" stroke="#D6C7AA" stroke-width="11"/>
-      <path d="M118 176h164l14 148H104z" fill="#F6EFE2"/>
-      <path d="M246 176h36l14 148h-40z" fill="#ECE2D0"/>
-      <rect x="118" y="176" width="164" height="9" fill="#E8DDC8"/>
-      <circle cx="200" cy="258" r="26" fill="#C8735A"/>
-      <rect x="162" y="262" width="76" height="5" fill="#F6EFE2"/>
-      <rect x="170" y="273" width="60" height="4" fill="#F6EFE2"/>
-      <path d="M150 214v-36c0-86 100-86 100 0v36" fill="none" stroke="#E4D7BE" stroke-width="12"/>`),
-
-    notebook: svg("#E8E1D6", `
-      <ellipse cx="208" cy="318" rx="95" ry="11" fill="#000" opacity=".08"/>
-      <g transform="rotate(-5 200 200)">
-        <rect x="134" y="96" width="150" height="212" rx="8" fill="#F7F3EC"/>
-        <rect x="128" y="92" width="150" height="212" rx="8" fill="#8E9C87"/>
-        <path d="M136 92h12v212h-12a8 8 0 0 1-8-8V100a8 8 0 0 1 8-8z" fill="#7D8B76"/>
-        <rect x="252" y="92" width="8" height="212" fill="#2F3A2E"/>
-        <rect x="164" y="132" width="74" height="28" rx="3" fill="#F4EFE6"/>
-        <rect x="176" y="141" width="50" height="4" rx="2" fill="#B5AA97"/>
-        <rect x="184" y="149" width="34" height="3" rx="1.5" fill="#CFC5B4"/>
-      </g>`),
 
     towel: svg("#DCE6EA", `
       <ellipse cx="200" cy="314" rx="115" ry="12" fill="#000" opacity=".07"/>
@@ -102,6 +88,41 @@
       <path d="M228 96h26l34 104h-40z" fill="#ECE3D5"/>
       <rect x="112" y="196" width="176" height="6" rx="3" fill="#E2D7C6"/>`)
   };
+
+  // Furniture art, redrawn for the chosen wood / fabric.
+  const tableArt = (w) => svg("#ECE6DD", `
+      <ellipse cx="200" cy="304" rx="150" ry="12" fill="#000" opacity=".08"/>
+      <path d="M106 186h12l-4 96h-5z" fill="${w[2]}"/>
+      <path d="M282 186h12l-3 96h-5z" fill="${w[2]}"/>
+      <path d="M64 158l28-22h216l28 22z" fill="${w[0]}"/>
+      <rect x="64" y="158" width="272" height="16" fill="${w[1]}"/>
+      <rect x="82" y="174" width="236" height="12" fill="${w[2]}" opacity=".85"/>
+      <path d="M84 174h18l-5 128h-8z" fill="${w[1]}"/>
+      <path d="M298 174h18l-4 128h-8z" fill="${w[1]}"/>
+      <path d="M120 144h160M108 151h184" stroke="#fff" stroke-width="2" opacity=".18"/>
+      <ellipse cx="200" cy="140" rx="26" ry="5" fill="#000" opacity=".06"/>
+      <path d="M190 116h20l-3 22h-14z" fill="#F4EFE6"/>
+      <path d="M200 116c-10-22 6-34 18-36-8 10-10 22-14 36z" fill="#7E9572"/>`);
+
+  const chairArt = (f, l) => svg("#EDE7DF", `
+      <ellipse cx="200" cy="322" rx="122" ry="12" fill="#000" opacity=".08"/>
+      <path d="M134 276h10l-3 40h-6z" fill="${l[1]}"/>
+      <path d="M256 276h10l-2 40h-6z" fill="${l[1]}"/>
+      <path d="M116 270h14l-4 48h-7z" fill="${l[0]}"/>
+      <path d="M270 270h14l-3 48h-7z" fill="${l[0]}"/>
+      <path d="M118 120c0-22 22-34 82-34s82 12 82 34v130H118z" fill="${f[2]}"/>
+      <rect x="134" y="112" width="132" height="116" rx="30" fill="${f[1]}"/>
+      <rect x="108" y="226" width="184" height="50" rx="16" fill="${f[2]}"/>
+      <rect x="128" y="208" width="144" height="36" rx="14" fill="${f[0]}"/>
+      <rect x="90" y="168" width="42" height="108" rx="20" fill="${f[1]}"/>
+      <rect x="268" y="168" width="42" height="108" rx="20" fill="${f[1]}"/>
+      <path d="M96 182h30M274 182h30" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".16"/>`);
+
+  // [top, front, legs] for each wood, [light, mid, dark] for each fabric, [front, back] for legs
+  const WOOD = { oak: ["#E2C79C", "#C9A273", "#B08A5C"], smoked: ["#8E6C4E", "#73553D", "#5E4431"], walnut: ["#7C513A", "#61402C", "#4D3122"] };
+  const FABRIC = { sage: ["#AEBB9D", "#94A585", "#7C8C6D"], terracotta: ["#D08A66", "#BB6E4B", "#9F5A3B"],
+    midnight: ["#56688C", "#3F5074", "#33415F"], ivory: ["#F6F1E7", "#ECE4D6", "#DDD3C2"] };
+  const LEGS = { oak: ["#C9A273", "#A9875E"], black: ["#2F2B28", "#211E1C"] };
 
   window.CATALOG = [
     {
@@ -173,37 +194,146 @@
       }
     },
     {
-      id: "tote", price: 15, gender: "m", art: ART.tote,
-      name: { en: "Cotton Tote Bag", fr: "Sac cabas en coton" },
-      spoken: { en: ["cotton tote bag", "cotton tote bags"], fr: ["sac cabas en coton", "sacs cabas en coton"] },
+      id: "table", price: 1890, gender: "f",
+      art: tableArt(WOOD.oak), artFor: (v) => tableArt(WOOD[v.wood] || WOOD.oak),
+      name: { en: "Solid Wood Dining Table", fr: "Table à manger en bois massif" },
+      spoken: { en: ["dining table", "dining tables"], fr: ["table à manger", "tables à manger"] },
       short: {
-        en: "A sturdy everyday bag in organic cotton.",
-        fr: "Un sac robuste du quotidien en coton bio."
+        en: "A made-to-order table in solid oak or walnut, for 6 or 8 people.",
+        fr: "Une table fabriquée à la commande en chêne ou noyer massif, pour 6 ou 8 personnes."
       },
+      options: [
+        { key: "wood", name: { en: "Wood", fr: "Bois" }, values: [
+          { id: "oak", swatch: "#C9A273", delta: 0, name: { en: "Natural oak", fr: "Chêne naturel" },
+            spoken: { en: "in natural solid oak", fr: "en chêne massif naturel" },
+            lead: { en: "Made to order: ships in 6 to 8 weeks", fr: "Fabriquée à la commande : expédiée sous 6 à 8 semaines" } },
+          { id: "smoked", swatch: "#73553D", delta: 150, name: { en: "Smoked oak", fr: "Chêne fumé" },
+            spoken: { en: "in smoked solid oak", fr: "en chêne massif fumé" },
+            lead: { en: "Made to order: ships in 6 to 8 weeks", fr: "Fabriquée à la commande : expédiée sous 6 à 8 semaines" } },
+          { id: "walnut", swatch: "#61402C", delta: 500, name: { en: "Walnut", fr: "Noyer" },
+            spoken: { en: "in solid walnut", fr: "en noyer massif" },
+            lead: { en: "Made to order: ships in 8 to 10 weeks", fr: "Fabriquée à la commande : expédiée sous 8 à 10 semaines" } }
+        ] },
+        { key: "size", name: { en: "Size", fr: "Dimensions" }, values: [
+          { id: "180", delta: 0, name: { en: "180 × 90 cm · seats 6", fr: "180 × 90 cm · 6 personnes" },
+            pre: { en: "180 centimetre" }, spoken: { en: "", fr: "de 180 centimètres" } },
+          { id: "220", delta: 400, name: { en: "220 × 100 cm · seats 8", fr: "220 × 100 cm · 8 personnes" },
+            pre: { en: "220 centimetre" }, spoken: { en: "", fr: "de 220 centimètres" } }
+        ] }
+      ],
       description: {
-        en: "Thick organic cotton canvas with long handles to wear on the shoulder, and an inside pocket for keys and phone.",
-        fr: "Toile de coton bio épaisse, longues anses pour le porter à l'épaule et poche intérieure pour les clés et le téléphone."
+        en: [
+          "A dining table built to last for generations, made to order in our partner workshop in the Jura mountains in France. The top is made of solid wood boards 4 cm thick, joined edge to edge and finished by hand, with softly rounded edges and four tapered legs.",
+          "Choose natural oak for a light honey tone, smoked oak, darkened all the way through by a traditional fuming process rather than a stain, or American black walnut for a deep chocolate brown. Every table is unique: the grain, knots and colour vary from one board to the next.",
+          "The matte hard-wax oil finish is food safe and easy to repair, as light scratches can be sanded and re-oiled. Our two-person delivery team carries it to the room of your choice and bolts on the legs for you. Chairs are not included."
+        ],
+        fr: [
+          "Une table conçue pour traverser les générations, fabriquée à la commande dans notre atelier partenaire du Jura. Le plateau est composé de planches de bois massif de 4 cm d'épaisseur, assemblées à chant et finies à la main, avec des bords adoucis et quatre pieds fuselés.",
+          "Choisissez le chêne naturel pour une teinte miel lumineuse, le chêne fumé, foncé dans toute son épaisseur par un fumage traditionnel et non par une teinture, ou le noyer noir d'Amérique pour un brun chocolat profond. Chaque table est unique : le fil du bois, les nœuds et la couleur varient d'une planche à l'autre.",
+          "La finition à l'huile-cire mate est compatible avec le contact alimentaire et facile à rénover : les rayures légères se poncent et se huilent à nouveau. Nos deux livreurs l'installent dans la pièce de votre choix et fixent les pieds pour vous. Chaises non incluses."
+        ]
       },
       details: {
-        en: [["Material", "Organic cotton"], ["Size", "38 × 42 cm"], ["Colour", "Natural"], ["Care", "Machine wash 30 °C"]],
-        fr: [["Matière", "Coton bio"], ["Dimensions", "38 × 42 cm"], ["Couleur", "Écru"], ["Entretien", "Machine à 30 °C"]]
+        en: [
+          ["Wood", "Solid European oak (natural or smoked), or solid American black walnut"],
+          ["Sizes", "180 × 90 cm (seats 6) or 220 × 100 cm (seats 8)"],
+          ["Height", "75 cm, with 66 cm of knee room under the frame"],
+          ["Tabletop", "Solid boards, 4 cm thick"],
+          ["Weight", "180 cm: 52 kg in oak, 46 kg in walnut · 220 cm: 68 kg in oak, 60 kg in walnut"],
+          ["Finish", "Matte hard-wax oil, food safe"],
+          ["Assembly", "Legs bolt on. Our delivery team assembles it for free"],
+          ["Care", "Wipe with a damp cloth. Re-oil once a year with the care kit included"],
+          ["Lead time", "Made to order: 6 to 8 weeks in oak, 8 to 10 weeks in walnut"],
+          ["Made in", "France (Jura)"],
+          ["Warranty", "10 years"]
+        ],
+        fr: [
+          ["Bois", "Chêne massif européen (naturel ou fumé), ou noyer noir d'Amérique massif"],
+          ["Dimensions", "180 × 90 cm (6 personnes) ou 220 × 100 cm (8 personnes)"],
+          ["Hauteur", "75 cm, dont 66 cm de passage pour les jambes sous la ceinture"],
+          ["Plateau", "Planches massives de 4 cm d'épaisseur"],
+          ["Poids", "180 cm : 52 kg en chêne, 46 kg en noyer · 220 cm : 68 kg en chêne, 60 kg en noyer"],
+          ["Finition", "Huile-cire mate, contact alimentaire"],
+          ["Montage", "Pieds vissés. Montage offert par nos livreurs"],
+          ["Entretien", "Un chiffon humide. Huiler une fois par an avec le kit d'entretien fourni"],
+          ["Délai", "Fabriquée à la commande : 6 à 8 semaines en chêne, 8 à 10 semaines en noyer"],
+          ["Fabrication", "France (Jura)"],
+          ["Garantie", "10 ans"]
+        ]
       }
     },
     {
-      id: "notebook", price: 12, gender: "m", art: ART.notebook,
-      name: { en: "Paper Notebook", fr: "Carnet de notes" },
-      spoken: { en: ["paper notebook", "paper notebooks"], fr: ["carnet de notes", "carnets de notes"] },
+      id: "armchair", price: 1290, gender: "m",
+      art: chairArt(FABRIC.sage, LEGS.oak), artFor: (v) => chairArt(FABRIC[v.fabric] || FABRIC.sage, LEGS[v.legs] || LEGS.oak),
+      name: { en: "Lounge Armchair", fr: "Fauteuil de salon" },
+      spoken: { en: ["lounge armchair", "lounge armchairs"], fr: ["fauteuil de salon", "fauteuils de salon"] },
       short: {
-        en: "A5 notebook with dotted pages and a linen cover.",
-        fr: "Carnet A5 à pages pointillées et couverture en lin."
+        en: "A deep armchair in cotton velvet or wool bouclé, on solid oak legs.",
+        fr: "Un fauteuil profond en velours de coton ou bouclette de laine, sur pieds en chêne massif."
       },
+      options: [
+        { key: "fabric", name: { en: "Fabric", fr: "Tissu" }, values: [
+          { id: "sage", swatch: "#94A585", delta: 0, name: { en: "Sage green velvet", fr: "Velours vert sauge" },
+            spoken: { en: "in sage green velvet", fr: "en velours vert sauge" },
+            lead: { en: "In stock: ships in 1 to 2 weeks", fr: "En stock : expédié sous 1 à 2 semaines" } },
+          { id: "terracotta", swatch: "#BB6E4B", delta: 0, name: { en: "Terracotta velvet", fr: "Velours terracotta" },
+            spoken: { en: "in terracotta velvet", fr: "en velours terracotta" },
+            lead: { en: "Made to order: ships in 4 to 5 weeks", fr: "Fabriqué à la commande : expédié sous 4 à 5 semaines" } },
+          { id: "midnight", swatch: "#3F5074", delta: 0, name: { en: "Midnight blue velvet", fr: "Velours bleu nuit" },
+            spoken: { en: "in midnight blue velvet", fr: "en velours bleu nuit" },
+            lead: { en: "Made to order: ships in 4 to 5 weeks", fr: "Fabriqué à la commande : expédié sous 4 à 5 semaines" } },
+          { id: "ivory", swatch: "#ECE4D6", delta: 100, name: { en: "Ivory wool bouclé", fr: "Bouclette de laine ivoire" },
+            spoken: { en: "in ivory wool bouclé", fr: "en bouclette de laine ivoire" },
+            lead: { en: "In stock: ships in 1 to 2 weeks", fr: "En stock : expédié sous 1 à 2 semaines" } }
+        ] },
+        { key: "legs", name: { en: "Legs", fr: "Pieds" }, values: [
+          { id: "oak", swatch: "#C9A273", delta: 0, name: { en: "Natural oak", fr: "Chêne naturel" },
+            spoken: { en: "with natural oak legs", fr: "avec pieds en chêne naturel" } },
+          { id: "black", swatch: "#2F2B28", delta: 0, name: { en: "Black-stained oak", fr: "Chêne teinté noir" },
+            spoken: { en: "with black oak legs", fr: "avec pieds en chêne noir" } }
+        ] }
+      ],
       description: {
-        en: "160 pages of thick recycled paper that lies flat when open, with an elastic band to keep it closed.",
-        fr: "160 pages en papier recyclé épais qui reste bien à plat une fois ouvert, avec un élastique de fermeture."
+        en: [
+          "A deep, generous armchair with a gently curved back and wide arms, made for long evenings with a book. The solid beech frame is built to last, the seat combines pocket springs with high-resilience foam so it keeps its shape, and the loose back cushion is filled with a soft mix of feather and fibre.",
+          "Choose a cotton velvet in sage green, terracotta or midnight blue, or an ivory wool bouclé with a soft looped texture. The legs are solid oak, natural or stained black. If you have a cat or a dog, we recommend velvet, as claws can catch in the bouclé loops.",
+          "It arrives fully assembled: just screw on the four legs by hand, no tools needed. Our two-person delivery team carries it to the room of your choice."
+        ],
+        fr: [
+          "Un fauteuil profond et généreux, au dossier légèrement arrondi et aux larges accoudoirs, pensé pour les longues soirées de lecture. La structure en hêtre massif est faite pour durer, l'assise associe ressorts ensachés et mousse haute résilience pour garder sa forme, et le coussin de dossier amovible est garni d'un doux mélange de plumes et de fibres.",
+          "Choisissez un velours de coton vert sauge, terracotta ou bleu nuit, ou une bouclette de laine ivoire à la texture moelleuse. Les pieds sont en chêne massif, naturel ou teinté noir. Si vous avez un chat ou un chien, nous conseillons le velours : les griffes peuvent accrocher les boucles de la bouclette.",
+          "Il est livré entièrement monté : il suffit de visser les quatre pieds à la main, sans outil. Nos deux livreurs l'installent dans la pièce de votre choix."
+        ]
       },
       details: {
-        en: [["Format", "A5"], ["Pages", "160 dotted pages"], ["Paper", "Recycled"], ["Cover", "Sage green linen"]],
-        fr: [["Format", "A5"], ["Pages", "160 pages pointillées"], ["Papier", "Recyclé"], ["Couverture", "Lin vert sauge"]]
+        en: [
+          ["Fabric", "Cotton velvet (88% cotton, 12% polyester) or wool bouclé (65% wool, 35% polyamide)"],
+          ["Legs", "Solid oak, natural or black-stained"],
+          ["Dimensions", "78 cm wide, 84 cm deep, 76 cm high"],
+          ["Seat", "42 cm high, 55 cm deep. Arms 58 cm high"],
+          ["Weight", "24 kg. Supports up to 130 kg"],
+          ["Frame", "Kiln-dried solid beech"],
+          ["Filling", "Pocket springs and high-resilience foam. Back cushion in feather and fibre"],
+          ["Assembly", "Arrives assembled. Screw on the 4 legs by hand"],
+          ["Care", "Covers are not removable. Spot clean with a damp cloth"],
+          ["Lead time", "Sage green and ivory: in stock, 1 to 2 weeks. Terracotta and midnight blue: made to order, 4 to 5 weeks"],
+          ["Made in", "Portugal"],
+          ["Warranty", "10 years on the frame, 2 years on fabric and cushions"]
+        ],
+        fr: [
+          ["Tissu", "Velours de coton (88 % coton, 12 % polyester) ou bouclette de laine (65 % laine, 35 % polyamide)"],
+          ["Pieds", "Chêne massif, naturel ou teinté noir"],
+          ["Dimensions", "78 cm de large, 84 cm de profondeur, 76 cm de haut"],
+          ["Assise", "42 cm de haut, 55 cm de profondeur. Accoudoirs à 58 cm"],
+          ["Poids", "24 kg. Supporte jusqu'à 130 kg"],
+          ["Structure", "Hêtre massif séché au four"],
+          ["Garnissage", "Ressorts ensachés et mousse haute résilience. Coussin de dossier plumes et fibres"],
+          ["Montage", "Livré monté. Vissez les 4 pieds à la main"],
+          ["Entretien", "Housses non déhoussables. Détachez avec un chiffon humide"],
+          ["Délai", "Vert sauge et ivoire : en stock, 1 à 2 semaines. Terracotta et bleu nuit : fabriqué à la commande, 4 à 5 semaines"],
+          ["Fabrication", "Portugal"],
+          ["Garantie", "10 ans sur la structure, 2 ans sur le tissu et les coussins"]
+        ]
       }
     },
     {

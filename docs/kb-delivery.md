@@ -22,13 +22,13 @@ WHEN THE CLOCK STARTS
 Delivery time starts once the order is completed and paid. Items left in the cart are not reserved for shipping until then. The cart stays saved, so the customer can finish their order whenever they like.
 
 SHIPPING COST AND OPTIONS
-Shipping is free from 50 euros, otherwise 5 euros. All orders go by tracked standard delivery to the home address. There is no express option and no choice of delivery day.
+Shipping is free from 50 euros, otherwise 5 euros. Parcels go by tracked standard delivery to the home address. There is no express option and no choice of delivery day for parcels. The dining table and the armchair are different: delivery is always free and the customer books the day and time slot, see FURNITURE DELIVERY.
 
 TRACKING
-When the parcel leaves the warehouse, the customer receives an email and a text message with a tracking link. If nothing has arrived after 2 business days, ask them to check their spam folder.
+When a parcel leaves the warehouse, the customer receives an email and a text message with a tracking link. If nothing has arrived after 2 business days, ask them to check their spam folder. For the dining table and the armchair there is no tracking link: the delivery partner calls or texts to book the delivery, see FURNITURE DELIVERY.
 
 IF THE CUSTOMER IS NOT HOME
-The carrier leaves a notice and takes the parcel to a nearby pickup point, where it waits for 10 days.
+For a parcel, the carrier leaves a notice and takes it to a nearby pickup point, where it waits for 10 days. Furniture is never left at a pickup point: see the missed slot rule in FURNITURE DELIVERY.
 
 DELAYS
 - During busy periods, such as late November to Christmas and during sales, add 1 to 2 business days.
@@ -43,7 +43,7 @@ GIFTS
 The customer can enter a different delivery address at checkout. Prices are not shown on the packing slip.
 
 DAMAGED OR WRONG ITEM
-The customer sends a photo through the contact form within 14 days of delivery. We send a free replacement or a refund. There is no need to return a broken item.
+The customer sends a photo through the contact form within 14 days of delivery. We send a free replacement or a refund. There is no need to return a broken item. For the dining table and the armchair, see FURNITURE RETURNS.
 
 RETURNS
 Free returns within 30 days of delivery for unused items, using the prepaid label from the contact form. The refund is made to the original payment method within 5 business days of us receiving the parcel.
@@ -80,13 +80,13 @@ QUAND LE DÉLAI COMMENCE
 Le délai commence une fois la commande validée et payée. Les articles laissés dans le panier ne sont pas encore réservés à l'expédition. Le panier reste enregistré : le client peut finaliser sa commande quand il le souhaite.
 
 FRAIS ET OPTIONS DE LIVRAISON
-La livraison est offerte dès 50 euros d'achat, sinon elle coûte 5 euros. Toutes les commandes partent en livraison standard suivie, à domicile. Il n'y a pas d'option express ni de choix du jour de livraison.
+La livraison est offerte dès 50 euros d'achat, sinon elle coûte 5 euros. Les colis partent en livraison standard suivie, à domicile. Il n'y a pas d'option express ni de choix du jour de livraison pour les colis. La table à manger et le fauteuil sont différents : la livraison est toujours offerte et le client choisit le jour et le créneau, voir LIVRAISON DU MOBILIER.
 
 SUIVI
-Quand le colis quitte l'entrepôt, le client reçoit un e-mail et un SMS avec un lien de suivi. S'il n'a rien reçu au bout de 2 jours ouvrés, invitez-le à vérifier ses courriers indésirables.
+Quand un colis quitte l'entrepôt, le client reçoit un e-mail et un SMS avec un lien de suivi. S'il n'a rien reçu au bout de 2 jours ouvrés, invitez-le à vérifier ses courriers indésirables. Pour la table à manger et le fauteuil, il n'y a pas de lien de suivi : le transporteur appelle ou envoie un SMS pour fixer la livraison, voir LIVRAISON DU MOBILIER.
 
 CLIENT ABSENT
-Le transporteur laisse un avis de passage et dépose le colis dans un point relais proche, où il est gardé 10 jours.
+Pour un colis, le transporteur laisse un avis de passage et le dépose dans un point relais proche, où il est gardé 10 jours. Un meuble n'est jamais déposé en point relais : voir la règle du créneau manqué dans LIVRAISON DU MOBILIER.
 
 RETARDS
 - En période chargée, de fin novembre à Noël et pendant les soldes, comptez 1 à 2 jours ouvrés de plus.
@@ -101,7 +101,7 @@ CADEAUX
 Le client peut indiquer une autre adresse de livraison au moment de commander. Les prix n'apparaissent pas sur le bon de livraison.
 
 ARTICLE ABÎMÉ OU ERREUR
-Le client envoie une photo via le formulaire de contact dans les 14 jours suivant la livraison. Nous envoyons un remplacement gratuit ou un remboursement. Inutile de renvoyer un article cassé.
+Le client envoie une photo via le formulaire de contact dans les 14 jours suivant la livraison. Nous envoyons un remplacement gratuit ou un remboursement. Inutile de renvoyer un article cassé. Pour la table à manger et le fauteuil, voir RETOURS DU MOBILIER.
 
 RETOURS
 Retours gratuits sous 30 jours après la livraison pour les articles non utilisés, avec l'étiquette prépayée obtenue via le formulaire de contact. Le remboursement est fait sur le moyen de paiement d'origine sous 5 jours ouvrés après réception du colis.

@@ -148,7 +148,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 
 **Store policies**
 - Shipping: free on orders of 50 euros or more, otherwise 5 euros.
-- Orders are dispatched within 1 to 2 business days. Total time from order to door: 3 to 6 business days in mainland France, 4 to 7 elsewhere in Europe, 5 to 8 for the UK and Switzerland.
+- Parcels (every product except the dining table and the armchair) are dispatched within 1 to 2 business days. Total time from order to door: 3 to 6 business days in mainland France, 4 to 7 elsewhere in Europe, 5 to 8 for the UK and Switzerland.
+- Dining table and armchair: free two-person delivery to the room of the customer's choice, after a making time of 1 to 10 weeks depending on the version. The customer books the delivery day and slot.
 - Returns: free returns within 30 days for unused items.
 - Payment: credit card or PayPal on the website. Payment is never taken over the phone.
 - Discount code MERCI10: 10 percent off the whole order, one use per order, works together with free shipping.
@@ -162,8 +163,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 | Vanilla Scented Candle | 24 euros | Soy wax, cotton wick, amber glass jar, about 40 hours burn time, 200 g |
 | Wool Blanket | 79 euros | 100% wool, 130 by 170 cm, natural beige with a stripe and fringes, hand wash cold |
 | Insulated Bottle | 29 euros | Stainless steel, 500 ml, slate blue, keeps drinks cold 24 hours or hot 12 hours, leak proof, hand wash |
-| Solid Wood Dining Table | from 1890 euros | Made to order in France. Natural oak, smoked oak or walnut. 180 by 90 cm (seats 6) or 220 by 100 cm (seats 8). 1890 to 2790 euros. Free two-person delivery. Full details in kb-furniture.md |
-| Lounge Armchair | from 1290 euros | Cotton velvet in sage green, terracotta or midnight blue (1290 euros) or ivory wool bouclé (1390 euros). Natural or black oak legs. 78 cm wide. Free two-person delivery. Full details in kb-furniture.md |
+| Solid Wood Dining Table | from 1890 euros | Made to order in France. Natural oak, smoked oak or walnut. 180 by 90 cm (seats 6) or 220 by 100 cm (seats 8). 1890 to 2790 euros. Free two-person delivery |
+| Lounge Armchair | from 1290 euros | Cotton velvet in sage green, terracotta or midnight blue (1290 euros) or ivory wool bouclé (1390 euros). Natural or black oak legs. 78 cm wide. Free two-person delivery |
 | Cotton Bath Towel | 25 euros | 100% cotton, 70 by 140 cm, white, machine wash 40 degrees |
 | Table Lamp | 69 euros | Terracotta ceramic base, natural linen shade, 40 cm tall, LED bulb included, switch on the cable |
 
@@ -171,7 +172,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 
 **Conditions de la boutique**
 - Livraison : offerte dès 50 euros d'achat, sinon 5 euros.
-- Les commandes sont expédiées sous 1 à 2 jours ouvrés. Délai total entre la commande et la livraison : 3 à 6 jours ouvrés en France métropolitaine, 4 à 7 ailleurs en Europe, 5 à 8 pour le Royaume-Uni et la Suisse.
+- Les colis (tous les produits sauf la table à manger et le fauteuil) sont expédiés sous 1 à 2 jours ouvrés. Délai total entre la commande et la livraison : 3 à 6 jours ouvrés en France métropolitaine, 4 à 7 ailleurs en Europe, 5 à 8 pour le Royaume-Uni et la Suisse.
+- Table à manger et fauteuil : livraison offerte par deux livreurs jusqu'à la pièce choisie, après un délai de fabrication de 1 à 10 semaines selon la version. Le client choisit le jour et le créneau de livraison.
 - Retours : gratuits sous 30 jours pour les articles non utilisés.
 - Paiement : carte bancaire ou PayPal sur le site. Aucun paiement par téléphone.
 - Code MERCI10 : 10 pour cent de réduction sur toute la commande, une utilisation par commande, cumulable avec la livraison offerte.
@@ -185,8 +187,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 | Bougie parfumée à la vanille | 24 euros | Cire de soja, mèche en coton, pot en verre ambré, environ 40 heures de combustion, 200 g |
 | Plaid en laine | 79 euros | 100 % laine, 130 sur 170 cm, beige naturel avec une rayure et des franges, lavage à la main à froid |
 | Gourde isotherme | 29 euros | Acier inoxydable, 500 ml, bleu ardoise, garde au froid 24 heures ou au chaud 12 heures, étanche, lavage à la main |
-| Table à manger en bois massif | à partir de 1890 euros | Fabriquée à la commande en France. Chêne naturel, chêne fumé ou noyer. 180 sur 90 cm (6 personnes) ou 220 sur 100 cm (8 personnes). De 1890 à 2790 euros. Livraison offerte par deux livreurs. Détails complets dans kb-furniture.md |
-| Fauteuil de salon | à partir de 1290 euros | Velours de coton vert sauge, terracotta ou bleu nuit (1290 euros) ou bouclette de laine ivoire (1390 euros). Pieds en chêne naturel ou noir. 78 cm de large. Livraison offerte par deux livreurs. Détails complets dans kb-furniture.md |
+| Table à manger en bois massif | à partir de 1890 euros | Fabriquée à la commande en France. Chêne naturel, chêne fumé ou noyer. 180 sur 90 cm (6 personnes) ou 220 sur 100 cm (8 personnes). De 1890 à 2790 euros. Livraison offerte par deux livreurs |
+| Fauteuil de salon | à partir de 1290 euros | Velours de coton vert sauge, terracotta ou bleu nuit (1290 euros) ou bouclette de laine ivoire (1390 euros). Pieds en chêne naturel ou noir. 78 cm de large. Livraison offerte par deux livreurs |
 | Serviette de bain en coton | 25 euros | 100 % coton, 70 sur 140 cm, blanche, lavage en machine à 40 degrés |
 | Lampe de table | 69 euros | Pied en céramique terracotta, abat-jour en lin naturel, 40 cm de haut, ampoule LED incluse, interrupteur sur le câble |
 

@@ -182,14 +182,282 @@ P = [
     ),
 ]
 
+# Long-form copy for Shopify (richer than the demo store's cards, never contradicting them).
+# paras: description paragraphs; details: the "Details" list. Same order in EN and FR.
+TEXT = {
+    "mug": {
+        "en": dict(paras=[
+            "A generous everyday mug in soft white stoneware.",
+            "Made from glazed stoneware, a dense ceramic fired at high temperature, it is sturdy, keeps your drink warm for longer and resists chips better than ordinary earthenware. The smooth, rounded handle leaves room for three fingers, and the slightly thicker rim feels pleasant against the lips.",
+            "At 350 ml it holds a large coffee, a tea or a hot chocolate. The satin white glaze is free of lead and cadmium, and the mug goes straight into the microwave and the dishwasher. Each piece is glazed by hand, so small variations in tone are normal and make every mug unique.",
+        ], details=[
+            ("Material", "Stoneware ceramic, satin glaze (lead and cadmium free)"),
+            ("Capacity", "350 ml"),
+            ("Dimensions", "10 cm high, 9 cm across (12 cm with the handle)"),
+            ("Weight", "380 g"),
+            ("Colour", "White"),
+            ("Care", "Dishwasher and microwave safe. Not for the oven or the hob."),
+            ("Made in", "Portugal"),
+            ("Packaging", "Recycled cardboard box"),
+        ]),
+        "fr": dict(paras=[
+            "Une grande tasse du quotidien en grès blanc.",
+            "Fabriquée en grès émaillé, une céramique dense cuite à haute température, elle est robuste, garde votre boisson chaude plus longtemps et résiste mieux aux ébréchures que la faïence. Son anse douce et arrondie laisse la place à trois doigts, et son bord légèrement épais est agréable aux lèvres.",
+            "Avec ses 350 ml, elle accueille un grand café, un thé ou un chocolat chaud. L'émail blanc satiné est sans plomb ni cadmium, et la tasse passe au micro-ondes comme au lave-vaisselle. Chaque pièce est émaillée à la main : de légères variations de teinte sont normales et rendent chaque tasse unique.",
+        ], details=[
+            ("Matière", "Grès céramique, émail satiné (sans plomb ni cadmium)"),
+            ("Contenance", "350 ml"),
+            ("Dimensions", "10 cm de haut, 9 cm de diamètre (12 cm avec l'anse)"),
+            ("Poids", "380 g"),
+            ("Couleur", "Blanc"),
+            ("Entretien", "Lave-vaisselle et micro-ondes. Ne pas utiliser au four ni sur le feu."),
+            ("Fabriqué au", "Portugal"),
+            ("Emballage", "Boîte en carton recyclé"),
+        ]),
+    },
+    "candle": {
+        "en": dict(paras=[
+            "A warm vanilla candle in an amber glass jar.",
+            "Poured by hand from natural soy wax with a cotton wick, it burns slowly and cleanly, with no paraffin and very little smoke. The scent is a soft, rounded vanilla with a hint of tonka bean: enough to fill a living room without ever being overpowering.",
+            "The 200 g of wax give about 40 hours of burning. Once the candle is finished, the amber glass jar can be washed and reused for pens, cotton pads or a small plant.",
+            "For the best result, let the wax melt across the whole surface on the first burn (about 2 hours), trim the wick to 5 mm before each use, and never leave a lit candle unattended.",
+        ], details=[
+            ("Wax", "Natural soy wax, paraffin free, vegan"),
+            ("Wick", "Cotton"),
+            ("Scent", "Vanilla with a hint of tonka bean"),
+            ("Net wax weight", "200 g"),
+            ("Burn time", "About 40 hours"),
+            ("Jar", "Amber glass, reusable, 8 cm across, 9 cm high"),
+            ("Safety", "Burn for 3 hours at most at a time, away from draughts, children and pets"),
+            ("Made in", "France"),
+        ]),
+        "fr": dict(paras=[
+            "Une bougie à la vanille dans un pot en verre ambré.",
+            "Coulée à la main en cire de soja naturelle avec une mèche en coton, elle brûle lentement et proprement, sans paraffine et avec très peu de fumée. Son parfum est une vanille douce et ronde, avec une pointe de fève tonka : de quoi embaumer un salon sans jamais être trop fort.",
+            "Ses 200 g de cire offrent environ 40 heures de combustion. Une fois la bougie terminée, le pot en verre ambré se lave et se réutilise pour des crayons, des cotons ou une petite plante.",
+            "Pour un résultat optimal, laissez la cire fondre sur toute la surface lors du premier allumage (environ 2 heures), coupez la mèche à 5 mm avant chaque utilisation et ne laissez jamais une bougie allumée sans surveillance.",
+        ], details=[
+            ("Cire", "Cire de soja naturelle, sans paraffine, vegan"),
+            ("Mèche", "Coton"),
+            ("Parfum", "Vanille, pointe de fève tonka"),
+            ("Poids net de cire", "200 g"),
+            ("Durée de combustion", "Environ 40 heures"),
+            ("Pot", "Verre ambré réutilisable, 8 cm de diamètre, 9 cm de haut"),
+            ("Sécurité", "3 heures maximum d'affilée, à l'abri des courants d'air, des enfants et des animaux"),
+            ("Fabriqué en", "France"),
+        ]),
+    },
+    "blanket": {
+        "en": dict(paras=[
+            "A soft, warm blanket for the sofa or the bed.",
+            "Woven from pure new wool in a natural beige colour, with a simple stripe near one edge and knotted fringes at both ends. The wool is lightly brushed after weaving, which makes it soft to the touch while keeping the natural warmth and texture of the fibre.",
+            "Wool regulates temperature on its own: it keeps you warm on winter evenings and stays breathable the rest of the year. Throw it over the sofa, fold it at the foot of the bed or take it along for picnics. A few fibres may come loose during the first uses; this is normal for pure wool and stops quickly.",
+        ], details=[
+            ("Material", "100% pure new wool"),
+            ("Size", "130 × 170 cm (fringes not included)"),
+            ("Fringes", "8 cm, knotted, at both short ends"),
+            ("Weight", "About 900 g"),
+            ("Colour", "Natural beige with a single stripe"),
+            ("Care", "Hand wash cold with a wool detergent, dry flat. No tumble dryer. Air it regularly between washes."),
+            ("Made in", "Portugal"),
+            ("Packaging", "Cotton dust bag"),
+        ]),
+        "fr": dict(paras=[
+            "Un plaid doux et chaud pour le canapé ou le lit.",
+            "Tissé en pure laine vierge beige naturel, avec une rayure simple près d'un bord et des franges nouées aux deux extrémités. La laine est légèrement grattée après le tissage, ce qui la rend douce au toucher tout en gardant la chaleur et la texture naturelles de la fibre.",
+            "La laine régule naturellement la température : elle vous tient chaud les soirs d'hiver et reste respirante le reste de l'année. Jetez-le sur le canapé, pliez-le au pied du lit ou emportez-le en pique-nique. Quelques fibres peuvent se détacher lors des premières utilisations : c'est normal pour une pure laine et cela cesse rapidement.",
+        ], details=[
+            ("Matière", "100 % pure laine vierge"),
+            ("Dimensions", "130 × 170 cm (hors franges)"),
+            ("Franges", "8 cm, nouées, sur les deux petits côtés"),
+            ("Poids", "Environ 900 g"),
+            ("Couleur", "Beige naturel avec une rayure"),
+            ("Entretien", "Lavage à la main à froid avec une lessive spéciale laine, séchage à plat. Pas de sèche-linge. Aérer régulièrement entre deux lavages."),
+            ("Fabriqué au", "Portugal"),
+            ("Emballage", "Housse en coton"),
+        ]),
+    },
+    "bottle": {
+        "en": dict(paras=[
+            "Keeps drinks cold for 24 hours or hot for 12.",
+            "Its double wall of food-grade stainless steel is vacuum insulated: the outside stays at room temperature, without condensation, whatever you put inside. Iced water stays cold through a whole summer day, and tea or coffee stays hot until the afternoon.",
+            "The leak proof screw cap has a built-in carry loop, so you can hang it on a bag or carry it on one finger. At 7 cm across it fits most car and bike cup holders, and the wide opening takes ice cubes and is easy to clean. The slate blue finish is a matte powder coating that does not slip in the hand and resists scratches.",
+        ], details=[
+            ("Material", "18/8 food-grade stainless steel, double wall, vacuum insulated"),
+            ("Cap", "Leak proof screw cap with carry loop, BPA free"),
+            ("Capacity", "500 ml"),
+            ("Keeps", "Cold 24 hours, hot 12 hours"),
+            ("Dimensions", "26 cm high, 7 cm across"),
+            ("Weight", "340 g (empty)"),
+            ("Colour", "Slate blue, matte powder coating"),
+            ("Care", "Hand wash only. Not for the dishwasher, freezer or microwave."),
+            ("Made in", "China"),
+        ]),
+        "fr": dict(paras=[
+            "Garde vos boissons froides 24 h ou chaudes 12 h.",
+            "Sa double paroi en acier inoxydable alimentaire est isolée sous vide : l'extérieur reste à température ambiante, sans condensation, quelle que soit la boisson. L'eau glacée reste fraîche toute une journée d'été, et le thé ou le café reste chaud jusqu'à l'après-midi.",
+            "Le bouchon à visser étanche intègre une anse de transport : accrochez la gourde à un sac ou portez-la d'un doigt. Avec ses 7 cm de diamètre, elle se glisse dans la plupart des porte-gobelets de voiture et de vélo, et son large goulot accepte les glaçons et se nettoie facilement. La finition bleu ardoise est un revêtement mat par poudrage, qui ne glisse pas dans la main et résiste aux rayures.",
+        ], details=[
+            ("Matière", "Acier inoxydable alimentaire 18/8, double paroi, isolation sous vide"),
+            ("Bouchon", "À visser, étanche, avec anse de transport, sans BPA"),
+            ("Contenance", "500 ml"),
+            ("Conservation", "Froid 24 heures, chaud 12 heures"),
+            ("Dimensions", "26 cm de haut, 7 cm de diamètre"),
+            ("Poids", "340 g (à vide)"),
+            ("Couleur", "Bleu ardoise, revêtement mat par poudrage"),
+            ("Entretien", "Lavage à la main uniquement. Pas de lave-vaisselle, de congélateur ni de micro-ondes."),
+            ("Fabriqué en", "Chine"),
+        ]),
+    },
+    "tote": {
+        "en": dict(paras=[
+            "A sturdy everyday bag in organic cotton.",
+            "Cut from a thick organic cotton canvas, it keeps its shape and carries up to 10 kg: groceries, a laptop, a change of clothes or a day at the beach. The long handles are made to be worn on the shoulder, even over a winter coat.",
+            "Inside, a flat pocket keeps your keys and phone within reach instead of at the bottom of the bag. The undyed natural canvas softens and gets more character with use, and the bag folds flat to slip into another bag or a drawer.",
+        ], details=[
+            ("Material", "100% organic cotton canvas, 340 g/m², undyed"),
+            ("Size", "38 × 42 cm"),
+            ("Handles", "65 cm long, to wear on the shoulder"),
+            ("Inside", "One flat pocket for keys and phone"),
+            ("Carries", "Up to 10 kg"),
+            ("Colour", "Natural (undyed)"),
+            ("Care", "Machine wash 30 °C, inside out. Line dry. May shrink slightly at the first wash."),
+            ("Made in", "India"),
+        ]),
+        "fr": dict(paras=[
+            "Un sac robuste du quotidien en coton bio.",
+            "Taillé dans une toile de coton bio épaisse, il garde sa forme et porte jusqu'à 10 kg : courses, ordinateur portable, tenue de rechange ou journée à la plage. Ses longues anses se portent à l'épaule, même par-dessus un manteau d'hiver.",
+            "À l'intérieur, une poche plate garde vos clés et votre téléphone à portée de main plutôt qu'au fond du sac. La toile écrue non teinte s'assouplit et prend du caractère avec le temps, et le sac se plie à plat pour se glisser dans un autre sac ou un tiroir.",
+        ], details=[
+            ("Matière", "Toile 100 % coton bio, 340 g/m², non teinte"),
+            ("Dimensions", "38 × 42 cm"),
+            ("Anses", "65 cm, à porter à l'épaule"),
+            ("Intérieur", "Une poche plate pour les clés et le téléphone"),
+            ("Charge", "Jusqu'à 10 kg"),
+            ("Couleur", "Écru (non teint)"),
+            ("Entretien", "Machine à 30 °C, sur l'envers. Séchage à l'air libre. Peut rétrécir légèrement au premier lavage."),
+            ("Fabriqué en", "Inde"),
+        ]),
+    },
+    "notebook": {
+        "en": dict(paras=[
+            "A5 notebook with dotted pages and a linen cover.",
+            "Its 160 pages of thick recycled paper have a discreet 5 mm dot grid, as handy for writing as for lists, sketches or bullet journaling. The paper takes most pens, including felt tips and fountain pens, without bleeding through.",
+            "The sewn binding lets the notebook lie completely flat when open, so you can write right to the edge of the page. The cover is wrapped in sage green linen, with an elastic band to keep it closed, a ribbon bookmark and a small pocket inside the back cover for loose notes and tickets.",
+        ], details=[
+            ("Format", "A5 (14.8 × 21 cm)"),
+            ("Pages", "160 dotted pages (80 sheets), 5 mm dot grid"),
+            ("Paper", "Recycled, 100 g/m², ivory"),
+            ("Binding", "Sewn, lies flat when open"),
+            ("Cover", "Sage green linen over rigid board"),
+            ("Extras", "Elastic closure, ribbon bookmark, pocket inside the back cover"),
+            ("Made in", "France"),
+        ]),
+        "fr": dict(paras=[
+            "Carnet A5 à pages pointillées et couverture en lin.",
+            "Ses 160 pages en papier recyclé épais portent une grille discrète de points espacés de 5 mm, aussi pratique pour écrire que pour faire des listes, dessiner ou tenir un bullet journal. Le papier accepte la plupart des stylos, y compris les feutres et les stylos plume, sans transpercer.",
+            "Sa reliure cousue permet au carnet de rester parfaitement à plat une fois ouvert, pour écrire jusqu'au bord de la page. La couverture est habillée de lin vert sauge, avec un élastique de fermeture, un signet en ruban et une petite poche à l'intérieur du rabat arrière pour les notes volantes et les tickets.",
+        ], details=[
+            ("Format", "A5 (14,8 × 21 cm)"),
+            ("Pages", "160 pages pointillées (80 feuilles), points espacés de 5 mm"),
+            ("Papier", "Recyclé, 100 g/m², ivoire"),
+            ("Reliure", "Cousue, reste à plat une fois ouvert"),
+            ("Couverture", "Lin vert sauge sur carton rigide"),
+            ("Plus", "Élastique de fermeture, signet en ruban, poche au dos"),
+            ("Fabriqué en", "France"),
+        ]),
+    },
+    "towel": {
+        "en": dict(paras=[
+            "A thick, absorbent towel in soft white cotton.",
+            "Woven from long-staple cotton in a dense 550 g/m² terry, it dries you quickly and gets softer with every wash. At 70 × 140 cm it is large enough to wrap around you after a shower.",
+            "Double-stitched hems keep the edges neat wash after wash, and a hanging loop lets you hang it on a hook. Wash it once before the first use: this removes the finishing from the factory and brings out its full absorbency.",
+        ], details=[
+            ("Material", "100% long-staple cotton terry, 550 g/m²"),
+            ("Size", "70 × 140 cm"),
+            ("Colour", "White"),
+            ("Finish", "Double-stitched hems, hanging loop"),
+            ("Care", "Machine wash 40 °C (60 °C possible). Tumble dry low. No fabric softener, which reduces absorbency."),
+            ("Made in", "Portugal"),
+        ]),
+        "fr": dict(paras=[
+            "Une serviette épaisse et absorbante en coton blanc.",
+            "Tissée en coton à fibres longues dans une éponge dense de 550 g/m², elle sèche rapidement et devient plus douce à chaque lavage. Avec ses 70 × 140 cm, elle est assez grande pour s'envelopper après la douche.",
+            "Ses ourlets à double piqûre restent nets lavage après lavage, et une bride permet de la suspendre à une patère. Lavez-la une fois avant la première utilisation : cela retire l'apprêt d'usine et révèle tout son pouvoir absorbant.",
+        ], details=[
+            ("Matière", "Éponge 100 % coton à fibres longues, 550 g/m²"),
+            ("Dimensions", "70 × 140 cm"),
+            ("Couleur", "Blanc"),
+            ("Finitions", "Ourlets à double piqûre, bride de suspension"),
+            ("Entretien", "Machine à 40 °C (60 °C possible). Sèche-linge à basse température. Pas d'adoucissant, qui réduit l'absorption."),
+            ("Fabriqué au", "Portugal"),
+        ]),
+    },
+    "lamp": {
+        "en": dict(paras=[
+            "A ceramic lamp with a linen shade for soft, warm light.",
+            "The rounded base is turned in terracotta ceramic and finished with a hand-applied glaze, so each lamp has its own slight variations of colour. The natural linen shade diffuses the light evenly and gives the room a warm, cosy glow.",
+            "It comes ready to use, with a warm white LED bulb that uses very little energy, and an on and off switch on the fabric cable. At 40 cm high it suits a bedside table, a sideboard or a desk corner.",
+        ], details=[
+            ("Material", "Terracotta ceramic base, natural linen shade"),
+            ("Height", "40 cm"),
+            ("Shade", "28 cm across"),
+            ("Bulb", "LED included: E27, 6 W, warm white (2700 K), equal to a 40 W bulb"),
+            ("Cable", "1.8 m, fabric covered, with on and off switch"),
+            ("Plug", "European plug. UK customers need an adapter."),
+            ("Weight", "2.1 kg"),
+            ("Care", "Dust the base with a dry cloth and the shade with a soft brush."),
+            ("Made in", "Portugal"),
+        ]),
+        "fr": dict(paras=[
+            "Une lampe en céramique avec abat-jour en lin pour une lumière douce.",
+            "Son pied arrondi est façonné en céramique terracotta et émaillé à la main : chaque lampe présente ainsi de légères variations de couleur. L'abat-jour en lin naturel diffuse la lumière de façon homogène et donne à la pièce une ambiance chaleureuse.",
+            "Elle est livrée prête à l'emploi, avec une ampoule LED blanc chaud très économe et un interrupteur sur le câble textile. Avec ses 40 cm de haut, elle trouve sa place sur une table de chevet, un buffet ou un coin de bureau.",
+        ], details=[
+            ("Matière", "Pied en céramique terracotta, abat-jour en lin naturel"),
+            ("Hauteur", "40 cm"),
+            ("Abat-jour", "28 cm de diamètre"),
+            ("Ampoule", "LED incluse : E27, 6 W, blanc chaud (2700 K), équivalent 40 W"),
+            ("Câble", "1,8 m, gainé de tissu, avec interrupteur"),
+            ("Prise", "Prise européenne. Un adaptateur est nécessaire au Royaume-Uni."),
+            ("Poids", "2,1 kg"),
+            ("Entretien", "Dépoussiérer le pied avec un chiffon sec et l'abat-jour avec une brosse douce."),
+            ("Fabriqué au", "Portugal"),
+        ]),
+    },
+}
+
+for _p in P:
+    _t = TEXT[_p["id"]]
+    _p["paras"] = (_t["en"]["paras"], _t["fr"]["paras"])
+    _p["details"] = (_t["en"]["details"], _t["fr"]["details"])
+
+
+LABEL = {"en": ("Details", "Delivery and returns"), "fr": ("Caractéristiques", "Livraison et retours")}
+
+
+def body_text(p, i):
+    """Plain text description: paragraphs, then the details list, then delivery."""
+    lang = "en" if i == 0 else "fr"
+    sep = ": " if lang == "en" else " : "
+    lines = []
+    for para in p["paras"][i]:
+        lines += [para, ""]
+    lines.append(LABEL[lang][0])
+    lines += [f"- {k}{sep}{v}" for k, v in p["details"][i]]
+    lines += ["", LABEL[lang][1], DELIVERY[lang]]
+    return "\n".join(lines)
+
 
 def body_html(p, i):
+    """Same content as body_text, as HTML for the CSV import (Shopify needs HTML there)."""
     lang = "en" if i == 0 else "fr"
     e = html.escape
-    rows = "".join(f"<li><strong>{e(k)}:</strong> {e(v)}</li>" if lang == "en" else
-                   f"<li><strong>{e(k)} :</strong> {e(v)}</li>" for k, v in p["details"][i])
-    return (f"<p>{e(p['short'][i])}</p>\n<p>{e(p['body'][i])}</p>\n<ul>{rows}</ul>\n"
-            f"<p><em>{e(DELIVERY[lang])}</em></p>")
+    sep = ":" if lang == "en" else " :"
+    paras = "".join(f"<p>{e(x)}</p>" for x in p["paras"][i])
+    rows = "".join(f"<li><strong>{e(k)}{sep}</strong> {e(v)}</li>" for k, v in p["details"][i])
+    return (f"{paras}<h4>{LABEL[lang][0]}</h4><ul>{rows}</ul>"
+            f"<h4>{LABEL[lang][1]}</h4><p>{e(DELIVERY[lang])}</p>")
 
 
 def euro(x):
@@ -208,7 +476,7 @@ def markdown():
       "It creates all 8 products in English with price, cost, SKU, stock, weight, tags, SEO and image. "
       "Then add the few fields the CSV can't carry (category, collections, customs, French): see *After the import* below.\n")
     w("- **By hand:** Products → **Add product**, and copy each field from the product cards below. "
-      "For the description, click the **`<>`** (Show HTML) button in the description editor and paste the HTML block.\n")
+      "Descriptions are plain text: paste them straight into the description box (each line becomes its own paragraph).\n")
     w("Prices include VAT (see *Store settings*). Inventory quantities, cost prices, countries of origin and HS codes "
       "are realistic but invented for this demo store.\n")
 
@@ -227,7 +495,7 @@ def markdown():
         w("| --- | --- |")
         rows = [
             ("Title", p["title"][0]),
-            ("Description", "HTML block below"),
+            ("Description", "plain text block below"),
             ("Media", f"`shopify/images/maison-claire-{p['id']}.png`, alt text: {p['alt'][0]}"),
             ("Category", f"search **{p['category'][0]}** ({p['category'][1]})"),
             ("Price", f"{p['price']}.00 €"),
@@ -257,8 +525,8 @@ def markdown():
         for k, v in rows:
             w(f"| {k} | {v} |")
         w("")
-        w("**Description (English, HTML)**\n")
-        w("```html\n" + body_html(p, 0) + "\n```\n")
+        w("**Description (English)**\n")
+        w("```text\n" + body_text(p, 0) + "\n```\n")
         w("**French translation** (Settings → Languages → French → Translate, or the Translate & Adapt app)\n")
         w("| Field | Valeur |")
         w("| --- | --- |")
@@ -268,7 +536,8 @@ def markdown():
         w(f"| Image alt text | {p['alt'][1]} |")
         w(f"| Type | {p['type'][1]} |")
         w("")
-        w("```html\n" + body_html(p, 1) + "\n```\n")
+        w("**Description (français)**\n")
+        w("```text\n" + body_text(p, 1) + "\n```\n")
 
     w("## After the import\n")
     w("The Shopify CSV has no columns for these, so set them once per product (or in bulk: select the products → **Bulk edit**):\n")

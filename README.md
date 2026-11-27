@@ -36,7 +36,7 @@ The timer runs on the server, so the call happens even if the shopper closes the
 
 ## The products
 
-Eight everyday home items. Each has **one variant** (no sizes or colours), a **plain noun that translates one to one**, and a **whole-euro price**. That leaves the agent nothing ambiguous to clarify in either language.
+Six everyday home items with **one variant** each, and two furniture pieces with **options** (wood and size, fabric and legs) for harder product questions: materials, dimensions, weights, lead times. Every price is a **whole number of euros**, and each name is a plain noun with a direct translation. The agent's cart sentence names the chosen version ("one 220 centimetre dining table in solid walnut"). Furniture facts for the agent are in [docs/kb-furniture.md](docs/kb-furniture.md).
 
 | EN | FR | Price |
 | --- | --- | --- |
@@ -44,8 +44,8 @@ Eight everyday home items. Each has **one variant** (no sizes or colours), a **p
 | Vanilla Scented Candle | Bougie parfumée à la vanille | 24 € |
 | Wool Blanket | Plaid en laine | 79 € |
 | Insulated Bottle | Gourde isotherme | 29 € |
-| Cotton Tote Bag | Sac cabas en coton | 15 € |
-| Paper Notebook | Carnet de notes | 12 € |
+| Solid Wood Dining Table (natural oak, smoked oak or walnut; 180 or 220 cm) | Table à manger en bois massif | 1,890 to 2,790 € |
+| Lounge Armchair (3 velvets or ivory bouclé; natural or black oak legs) | Fauteuil de salon | 1,290 or 1,390 € |
 | Cotton Bath Towel | Serviette de bain en coton | 25 € |
 | Table Lamp | Lampe de table | 69 € |
 

@@ -62,7 +62,7 @@ Spoken word for word, so there are no dashes, ellipses or asterisks.
 
 ```text
 # Role
-You are Emma, a friendly customer care assistant for Maison Claire, an online store selling simple home essentials. You are calling {{contact_first_name}} a few minutes after they left items in their cart without completing checkout. They ticked a box agreeing to be called about their cart.
+You are Emma, a friendly customer care assistant for Maison Claire, an online store selling home essentials and a small range of solid wood furniture. You are calling {{contact_first_name}} a few minutes after they left items in their cart without completing checkout. They ticked a box agreeing to be called about their cart.
 
 # What you already know (never ask the customer for this)
 - First name: {{contact_first_name}}
@@ -92,6 +92,7 @@ Help the customer finish their order. Find out what stopped them, answer their q
 - Only discuss the products and policies in the store knowledge. If you do not know something, say a colleague will follow up by email.
 - Never ask for card details and never take an order over the phone. The order is completed on the website.
 - Say prices as whole euros, for example "24 euros".
+- For the dining table and the armchair, {{cart_items}} says which wood, size, fabric or legs the customer chose. Answer about that version first, and give lead times as ranges.
 - Say the code as "merci ten". If asked to spell it: M, E, R, C, I, one, zero.
 - If the customer asks not to be called again, confirm it, apologise for the disturbance and end the call.
 - If asked whether you are a robot or an AI, say yes, you are Maison Claire's AI assistant.
@@ -102,7 +103,7 @@ Help the customer finish their order. Find out what stopped them, answer their q
 
 ```text
 # Rôle
-Vous êtes Emma, conseillère clientèle chaleureuse de Maison Claire, une boutique en ligne d'objets simples pour la maison. Vous appelez {{contact_first_name}}, qui a laissé des articles dans son panier il y a quelques minutes sans finaliser sa commande. Le client a coché une case acceptant d'être appelé au sujet de son panier.
+Vous êtes Emma, conseillère clientèle chaleureuse de Maison Claire, une boutique en ligne d'objets pour la maison et de mobilier en bois massif. Vous appelez {{contact_first_name}}, qui a laissé des articles dans son panier il y a quelques minutes sans finaliser sa commande. Le client a coché une case acceptant d'être appelé au sujet de son panier.
 
 # Ce que vous savez déjà (ne le demandez jamais au client)
 - Prénom : {{contact_first_name}}
@@ -132,6 +133,7 @@ Aider le client à finaliser sa commande. Comprendre ce qui l'a arrêté, répon
 - Ne parlez que des produits et conditions présents dans les informations de la boutique. Si vous ne savez pas, dites qu'un collègue reviendra vers lui par e-mail.
 - Ne demandez jamais de coordonnées bancaires et ne prenez jamais de commande par téléphone. La commande se finalise sur le site.
 - Annoncez les prix en euros entiers, par exemple « 24 euros ».
+- Pour la table à manger et le fauteuil, {{cart_items}} indique le bois, la taille, le tissu ou les pieds choisis par le client. Répondez d'abord sur cette version, et donnez les délais sous forme de fourchette.
 - Dites le code « merci dix ». Si on vous demande de l'épeler : M, E, R, C, I, un, zéro.
 - Si le client ne souhaite plus être appelé, confirmez-le, excusez-vous pour le dérangement et terminez l'appel.
 - Si on vous demande si vous êtes un robot ou une IA, répondez oui, vous êtes l'assistante IA de Maison Claire.
@@ -140,7 +142,7 @@ Aider le client à finaliser sa commande. Comprendre ce qui l'a arrêté, répon
 
 ## 6. Knowledge base
 
-Paste the section matching each agent's language into its knowledge base. For delivery times, delays, tracking and returns, add [kb-delivery.md](kb-delivery.md) too.
+Paste the section matching each agent's language into its knowledge base. For delivery times, delays, tracking and returns, add [kb-delivery.md](kb-delivery.md) too. For the dining table and the armchair (versions, prices, wood, fabrics, dimensions, weights, care, lead times), add [kb-furniture.md](kb-furniture.md).
 
 ### English
 
@@ -150,7 +152,7 @@ Paste the section matching each agent's language into its knowledge base. For de
 - Returns: free returns within 30 days for unused items.
 - Payment: credit card or PayPal on the website. Payment is never taken over the phone.
 - Discount code MERCI10: 10 percent off the whole order, one use per order, works together with free shipping.
-- Each product comes in one version only: no sizes, colours or options to choose.
+- Most products come in one version only. The dining table (wood and size) and the armchair (fabric and legs) come in several versions with different prices.
 
 **Products**
 
@@ -160,8 +162,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 | Vanilla Scented Candle | 24 euros | Soy wax, cotton wick, amber glass jar, about 40 hours burn time, 200 g |
 | Wool Blanket | 79 euros | 100% wool, 130 by 170 cm, natural beige with a stripe and fringes, hand wash cold |
 | Insulated Bottle | 29 euros | Stainless steel, 500 ml, slate blue, keeps drinks cold 24 hours or hot 12 hours, leak proof, hand wash |
-| Cotton Tote Bag | 15 euros | Organic cotton canvas, 38 by 42 cm, natural colour, long shoulder handles, inside pocket, machine wash 30 degrees |
-| Paper Notebook | 12 euros | A5, 160 dotted pages, recycled paper, sage green linen cover, elastic band |
+| Solid Wood Dining Table | from 1890 euros | Made to order in France. Natural oak, smoked oak or walnut. 180 by 90 cm (seats 6) or 220 by 100 cm (seats 8). 1890 to 2790 euros. Free two-person delivery. Full details in kb-furniture.md |
+| Lounge Armchair | from 1290 euros | Cotton velvet in sage green, terracotta or midnight blue (1290 euros) or ivory wool bouclé (1390 euros). Natural or black oak legs. 78 cm wide. Free two-person delivery. Full details in kb-furniture.md |
 | Cotton Bath Towel | 25 euros | 100% cotton, 70 by 140 cm, white, machine wash 40 degrees |
 | Table Lamp | 69 euros | Terracotta ceramic base, natural linen shade, 40 cm tall, LED bulb included, switch on the cable |
 
@@ -173,7 +175,7 @@ Paste the section matching each agent's language into its knowledge base. For de
 - Retours : gratuits sous 30 jours pour les articles non utilisés.
 - Paiement : carte bancaire ou PayPal sur le site. Aucun paiement par téléphone.
 - Code MERCI10 : 10 pour cent de réduction sur toute la commande, une utilisation par commande, cumulable avec la livraison offerte.
-- Chaque produit existe en une seule version : pas de taille, de couleur ni d'option à choisir.
+- La plupart des produits existent en une seule version. La table à manger (bois et taille) et le fauteuil (tissu et pieds) existent en plusieurs versions, à des prix différents.
 
 **Produits**
 
@@ -183,8 +185,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 | Bougie parfumée à la vanille | 24 euros | Cire de soja, mèche en coton, pot en verre ambré, environ 40 heures de combustion, 200 g |
 | Plaid en laine | 79 euros | 100 % laine, 130 sur 170 cm, beige naturel avec une rayure et des franges, lavage à la main à froid |
 | Gourde isotherme | 29 euros | Acier inoxydable, 500 ml, bleu ardoise, garde au froid 24 heures ou au chaud 12 heures, étanche, lavage à la main |
-| Sac cabas en coton | 15 euros | Toile de coton bio, 38 sur 42 cm, écru, longues anses pour l'épaule, poche intérieure, lavage en machine à 30 degrés |
-| Carnet de notes | 12 euros | Format A5, 160 pages pointillées, papier recyclé, couverture en lin vert sauge, élastique de fermeture |
+| Table à manger en bois massif | à partir de 1890 euros | Fabriquée à la commande en France. Chêne naturel, chêne fumé ou noyer. 180 sur 90 cm (6 personnes) ou 220 sur 100 cm (8 personnes). De 1890 à 2790 euros. Livraison offerte par deux livreurs. Détails complets dans kb-furniture.md |
+| Fauteuil de salon | à partir de 1290 euros | Velours de coton vert sauge, terracotta ou bleu nuit (1290 euros) ou bouclette de laine ivoire (1390 euros). Pieds en chêne naturel ou noir. 78 cm de large. Livraison offerte par deux livreurs. Détails complets dans kb-furniture.md |
 | Serviette de bain en coton | 25 euros | 100 % coton, 70 sur 140 cm, blanche, lavage en machine à 40 degrés |
 | Lampe de table | 69 euros | Pied en céramique terracotta, abat-jour en lin naturel, 40 cm de haut, ampoule LED incluse, interrupteur sur le câble |
 
@@ -196,5 +198,8 @@ Paste the section matching each agent's language into its knowledge base. For de
 | "How long will delivery take to Lyon?" | « La livraison prend combien de temps pour Lyon ? » |
 | "It's a bit expensive to be honest." | « C'est un peu cher pour moi. » |
 | "Does the lamp come with a bulb?" | « La lampe est livrée avec une ampoule ? » |
+| "Is the walnut table much heavier than the oak one?" (no, walnut is lighter) | « La table en noyer est plus lourde que celle en chêne ? » (non, plus légère) |
+| "I have a dog, is the bouclé armchair a good idea?" (agent should suggest velvet) | « J'ai un chien, le fauteuil en bouclette, c'est une bonne idée ? » (l'agent conseille le velours) |
+| "When would the terracotta armchair arrive?" | « Le fauteuil terracotta arriverait quand ? » |
 | "Can I just pay over the phone?" (agent should decline) | « Je peux payer par téléphone ? » (l'agent doit refuser) |
 | "Please don't call me again." (agent should stop) | « Ne me rappelez plus. » (l'agent doit arrêter) |

@@ -1,6 +1,6 @@
 # Knowledge base: delivery, delays and returns
 
-Paste the English block into the English agent's knowledge base and the French block into the French one (or both into a single bilingual agent). It is consistent with the store and with section 6 of [agent-brief.md](agent-brief.md): dispatch in 1 to 2 business days, free shipping from 50 euros, free returns within 30 days.
+Paste the English block into the English agent's knowledge base and the French block into the French one (or both into a single bilingual agent). It is consistent with the store and with section 6 of [agent-brief.md](agent-brief.md): dispatch in 1 to 2 business days, free shipping from 50 euros, free returns within 30 days. Furniture (the dining table and the armchair) has its own delivery and return rules, at the end of each block; product details are in [kb-furniture.md](kb-furniture.md).
 
 Written for speech: amounts and times are spelled out, no symbols, one topic per section.
 
@@ -8,6 +8,7 @@ Written for speech: amounts and times are spelled out, no symbols, one topic per
 
 ```text
 DELIVERY TIMES
+These times are for parcels, which means every product except the dining table and the lounge armchair. For those two, see FURNITURE DELIVERY.
 Orders leave our warehouse within 1 to 2 business days. Total time from order to door:
 - Mainland France: 3 to 6 business days.
 - Belgium, Luxembourg, Germany, the Netherlands, Spain, Italy, Ireland: 4 to 7 business days.
@@ -46,12 +47,26 @@ The customer sends a photo through the contact form within 14 days of delivery. 
 
 RETURNS
 Free returns within 30 days of delivery for unused items, using the prepaid label from the contact form. The refund is made to the original payment method within 5 business days of us receiving the parcel.
+
+FURNITURE DELIVERY
+The dining table and the lounge armchair do not travel as parcels. A two-person team delivers them, for free, to every country we deliver to.
+- First the piece is made or prepared: 1 to 2 weeks for an armchair in sage green or ivory, 4 to 5 weeks for an armchair in terracotta or midnight blue, 6 to 8 weeks for an oak table, 8 to 10 weeks for a walnut table.
+- When it is ready, our delivery partner calls or texts the customer to book a delivery day and a 4 hour time slot, Monday to Saturday. Delivery usually takes place within 1 to 2 weeks of that call.
+- The team carries it to the room of the customer's choice, on any floor, with or without a lift. They unpack it, bolt on the table legs and take the packaging away.
+- Someone aged 18 or over must be at home. If a slot is missed without notice, the first new booking is free. After that, each new attempt costs 59 euros.
+- If an order has furniture and smaller items, the smaller items leave within 1 to 2 business days as usual and the furniture arrives separately, at no extra cost.
+- Always give the making time and the delivery time as ranges. Never promise a date.
+
+FURNITURE RETURNS
+Free returns within 30 days of delivery, made-to-order pieces included, if the piece is unused and undamaged. The customer books a collection through the contact form. The two-person team collects it from the room, so the original boxes are not needed. The refund is made within 5 business days of the piece reaching our warehouse.
+If a piece is damaged at delivery, the customer notes it on the delivery slip if possible and sends photos through the contact form within 14 days. We repair, replace or refund it, as they prefer.
 ```
 
 ## Français
 
 ```text
 DÉLAIS DE LIVRAISON
+Ces délais concernent les colis, c'est-à-dire tous les produits sauf la table à manger et le fauteuil de salon. Pour ces deux meubles, voir LIVRAISON DU MOBILIER.
 Les commandes quittent notre entrepôt sous 1 à 2 jours ouvrés. Délai total entre la commande et la livraison :
 - France métropolitaine : 3 à 6 jours ouvrés.
 - Belgique, Luxembourg, Allemagne, Pays-Bas, Espagne, Italie, Irlande : 4 à 7 jours ouvrés.
@@ -90,6 +105,19 @@ Le client envoie une photo via le formulaire de contact dans les 14 jours suivan
 
 RETOURS
 Retours gratuits sous 30 jours après la livraison pour les articles non utilisés, avec l'étiquette prépayée obtenue via le formulaire de contact. Le remboursement est fait sur le moyen de paiement d'origine sous 5 jours ouvrés après réception du colis.
+
+LIVRAISON DU MOBILIER
+La table à manger et le fauteuil de salon ne voyagent pas en colis. Deux livreurs les livrent gratuitement, dans tous les pays où nous livrons.
+- D'abord, le meuble est fabriqué ou préparé : 1 à 2 semaines pour un fauteuil vert sauge ou ivoire, 4 à 5 semaines pour un fauteuil terracotta ou bleu nuit, 6 à 8 semaines pour une table en chêne, 8 à 10 semaines pour une table en noyer.
+- Quand il est prêt, notre transporteur appelle ou envoie un SMS au client pour fixer un jour de livraison et un créneau de 4 heures, du lundi au samedi. La livraison a généralement lieu dans les 1 à 2 semaines suivant cet appel.
+- Les livreurs le portent jusqu'à la pièce choisie par le client, à n'importe quel étage, avec ou sans ascenseur. Ils le déballent, fixent les pieds de la table et emportent les emballages.
+- Une personne majeure doit être présente. Si un créneau est manqué sans prévenir, le premier nouveau rendez-vous est gratuit. Ensuite, chaque nouvelle tentative coûte 59 euros.
+- Si une commande contient du mobilier et des petits articles, les petits articles partent sous 1 à 2 jours ouvrés comme d'habitude et le mobilier arrive séparément, sans frais supplémentaires.
+- Donnez toujours le délai de fabrication et le délai de livraison sous forme de fourchette. Ne promettez jamais de date.
+
+RETOURS DU MOBILIER
+Retours gratuits sous 30 jours après la livraison, y compris pour les meubles fabriqués à la commande, s'ils ne sont ni utilisés ni abîmés. Le client réserve un enlèvement via le formulaire de contact. Les deux livreurs viennent le chercher dans la pièce, il n'est donc pas nécessaire de garder les cartons d'origine. Le remboursement est fait sous 5 jours ouvrés après l'arrivée du meuble dans notre entrepôt.
+Si un meuble est abîmé à la livraison, le client le note sur le bon de livraison si possible et envoie des photos via le formulaire de contact dans les 14 jours. Nous le réparons, le remplaçons ou le remboursons, au choix du client.
 ```
 
 ## Questions to try
@@ -101,3 +129,5 @@ Retours gratuits sous 30 jours après la livraison pour les articles non utilis�
 | "My last order from you was late, what happens if that happens again?" | « Ma dernière commande est arrivée en retard, et si ça recommence ? » |
 | "Can you ship it to my mother in Geneva as a gift?" | « Vous pouvez l'envoyer à ma mère à Genève, c'est un cadeau ? » |
 | "Where's my parcel? Order MC-12345." (agent must not invent a status) | « Où en est mon colis ? Commande MC-12345. » (l'agent ne doit pas inventer de statut) |
+| "I live on the fourth floor with no lift, can you still bring the table up?" | « J'habite au quatrième sans ascenseur, vous pouvez monter la table ? » |
+| "I ordered the table and two mugs, will they come together?" | « J'ai commandé la table et deux tasses, tout arrive ensemble ? » |

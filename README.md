@@ -30,6 +30,7 @@ The timer runs on the server, so the call happens even if the shopper closes the
 | `index.html`, `assets/` | The store: static HTML, CSS and JS with no build step. |
 | `assets/config.js` | **The only file you edit**: Worker URL, delay, discount code. |
 | `assets/catalog.js` | The 8 products with EN/FR names, descriptions and spoken forms. |
+| `assets/guide.js`, `assets/guide.css` | The optional presenter guide (see [Presenter guide](#presenter-guide)). Only loaded with `?guide=1`. |
 | `worker/aircall-call-trigger.js` | Cloudflare Worker: runs the abandonment timer and calls the Aircall API. |
 | `worker/wrangler.toml` | Worker settings (public values only; secrets are set with `wrangler secret put`). |
 | `docs/agent-brief.md` | Agent setup: prompt, first message, voicemail and knowledge base, in EN and FR. |
@@ -130,11 +131,11 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 
 ## Running the demo
 
-1. Open the store and pick **EN** or **FR** in the header. The call uses the language the shopper used.
+1. Open the store. At the moment it is **French only** (`fixedLanguage: "fr"` in `assets/config.js`): there is no EN/FR switch, and the call is in French whichever country code the visitor picks. Set `fixedLanguage: ""` to bring the **EN** / **FR** switch back; the call then uses the language the shopper used.
 2. Add a couple of products and click **Check out**.
 3. Enter a first name and an allow-listed mobile number (and tick the consent box if `askConsent` is on). The timer starts on the server as soon as they are filled in; **Continue to payment** is optional.
 4. Stop, or close the tab. After 15 s (the demo panel, if shown, counts down and then shows **Call requested**) your phone rings.
-5. Talk to the agent (see the question ideas in the agent brief). Then go back, apply **MERCI10** and complete the order.
+5. Talk to the agent (see the question ideas in the agent brief). The French agent also asks for a delivery postal code (saved with the call in Aircall, not in the visitor list), and transfers the call only if you ask for a person. Then go back, apply **MERCI10** and complete the order.
 6. Click **Reset demo** in the panel before the next run (on a shared device).
 
 **Per-visit URL options**
@@ -142,7 +143,7 @@ If you set `DEMO_PASSCODE`, open the store once with `?passcode=<your passcode>`
 | Option | Effect |
 | --- | --- |
 | `?delay=10` | Countdown in seconds (5 to 3600). Also adjustable in the panel. |
-| `?lang=fr` | Open the store in French. |
+| `?lang=fr` | Open the store in French (ignored while `fixedLanguage` is set). |
 | `?demo=1` | Show the presenter panel (off by default: `showDemoPanel: false`). `?demo=0` hides it when it is on. |
 | `?passcode=xxxx` | Save the Worker passcode in this browser. |
 
@@ -160,6 +161,45 @@ Visitors scan a QR code with their own phone, fill in their name, number and car
 - **Visitor list**: open `https://cart-recovery-call.<your-subdomain>.workers.dev/leads.csv`, enter any user name and `LEADS_ADMIN_KEY` as the password. You get a CSV (opens in Excel or Google Sheets) with time, name, phone, email, language, cart, call outcome, whether they bought, and whether they ticked the optional follow-up box (always `false` while `askConsent` is off). Only numbers that passed the passcode and country checks are saved.
 - **Erase the list** after the event: `curl -u admin:<LEADS_ADMIN_KEY> -X DELETE https://cart-recovery-call.<your-subdomain>.workers.dev/leads`
 - **Privacy:** the checkout tells visitors they will be called and that their details are saved. With the checkboxes off there is no follow-up opt-in, so don't use the list for marketing without another basis (e.g. a badge scan). Check the wording with your privacy team before the event.
+
+## Presenter guide
+
+An optional side panel for the **person demoing on a laptop**. It tells you what to click next, helps fill in the checkout, and shows what happens behind the scenes. It is off by default: the QR code stand never loads it.
+
+| URL | Effect |
+| --- | --- |
+| `?guide=1` | Turn the guide on for this browser tab (it stays on while you browse the store in that tab). |
+| `?guide=1&sim=1` | **Rehearsal.** The whole flow runs, but nothing is sent to the Worker or Aircall: no call is placed. Use it to practise. |
+| `?guide=1&sim=0` | Force live calls again after a rehearsal. |
+| `?guide=0` | Turn the guide off, end any rehearsal and forget the timeline. |
+
+The panel is in the store's language, so with `fixedLanguage: "fr"` it stays in French. With the switch back on (`fixedLanguage: ""`), it follows the store's EN/FR switch, and `&lang=fr` opens it in French.
+
+**What you see** (right-hand panel, about 400 px wide; use the arrow to collapse it to a slim tab):
+
+- **Step bar and "do this now" card.** Five steps: add a product, check out, fill in the details, wait for the countdown, recover the order. The card says what to do and why, and a highlight points at the real button or field on the store. The step is worked out from what the store is doing, so it stays right if you go back or reload.
+- **Checkout helper.** A checklist of the fields still to fill, a masked preview of the number as the Worker will receive it (for example `+33 6••••••78`), and an **Apply code** button for the discount.
+- **Backstage timeline.** Five events, filled in as they happen: checkout captured, timer armed, what Emma knows (with her opening line), call requested (with the exact details she is sent, personal values masked), order recovered.
+- **Presenter controls** (folded away by default): **Call now** skips the countdown, **Cancel**, **Reset** for the next run, the countdown length, and a **Talking points** switch for short lines to say out loud.
+
+**Good to know**
+
+- The countdown is **20 s** in guide mode, so there is time to narrate. The stand stays at 15 s. Change it in Presenter controls or with `?delay=`.
+- The timeline shows what the store and the Worker report: armed, calling, sent, error, converted, cancelled. It does not show whether the visitor *answered* or how the call went, because the Worker has no Aircall call events. Check that in the Aircall dashboard.
+- Emma's opening line in the timeline is typed into `assets/guide.js` (`ev_opening`, EN and FR), copied from section 3 of [`docs/agent-brief.md`](docs/agent-brief.md). **If you change the first message in the Aircall dashboard, change it there too.**
+- **Don't tell anyone to complete the order before the call.** That cancels the call, exactly like a real recovery flow. Let the call come first, then complete the order.
+- Only the laptop layout is designed: the panel docks beside the store from about 1100 px wide and overlays it below that. On a phone it starts collapsed and is not meant for visitors.
+- `?sim=1` also works without `?guide=1`. `?guide=0` clears it.
+- After editing `guide.js` or `guide.css`, bump the `?v=` in `index.html` like the other files. `guide.css`'s version sits inside the small script in `<head>`, and `guide.js` takes its version from the `app.js` tag, so bump all the `?v=` together.
+- `guide.js` and `guide.css` are new files: add them to git (`git add assets/guide.js assets/guide.css`) along with the edits to `index.html` and `assets/app.js`.
+
+**Before using it live:** do one rehearsal (`?guide=1&sim=1`), then one real call to your own number to check the timeline against what you hear and see in the Aircall dashboard. For that call:
+
+1. Serve the store from your computer with `python3 -m http.server 8080` and open `http://localhost:8080/?guide=1&sim=0` (the Worker accepts `localhost:8080`; GitHub Pages only has the guide once this branch is merged and pushed).
+2. Check that `DRY_RUN` is off on the Worker (`npx wrangler secret delete DRY_RUN`), otherwise nothing rings and the guide says the Worker is in dry run.
+3. Use a number inside `ALLOWED_PHONE_PREFIXES`, and make sure the **country dropdown** in the checkout matches it (it starts on +33 France in both languages; a number typed without its country code is read as belonging to the selected country). The masked preview in the panel shows the number the Worker will receive.
+4. If `REQUIRE_PASSCODE` is `"true"` on the Worker, add `&passcode=<DEMO_PASSCODE>` once.
+5. Finish with `?guide=0`.
 
 ## Troubleshooting
 

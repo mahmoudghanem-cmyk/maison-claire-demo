@@ -14,7 +14,14 @@
 (function () {
   "use strict";
 
+  // Presenter guide (opt-in, see assets/guide.js). index.html adds this class before the first paint.
+  const GUIDE_ON = document.documentElement.classList.contains("guide-on");
+  const SELF = document.currentScript; // read it now: it is null once the script has finished running
+
   const CFG = window.STORE_CONFIG || {};
+  // One language for the whole demo (config.js: fixedLanguage). The EN/FR switch is hidden, ?lang= and
+  // saved choices are ignored, and the call follows it whatever country code the visitor picks.
+  const FIXED_LANG = /^(en|fr)$/.test(CFG.fixedLanguage) ? CFG.fixedLanguage : "";
   const CATALOG = window.CATALOG || [];
   const I18N = window.I18N || {};
   const PRODUCTS = Object.fromEntries(CATALOG.map((p) => [p.id, p]));
@@ -49,7 +56,8 @@
     panel: "mc_demo_panel"
   };
 
-  // Per-visit options: ?delay=10  ?demo=0  ?lang=fr  ?passcode=xxxx
+  // Per-visit options: ?delay=10  ?demo=0  ?lang=fr  ?passcode=xxxx  ?sim=1 (rehearsal: no call is placed)
+  let SIM = false;
   (function readUrlOptions() {
     const params = new URLSearchParams(location.search);
     let strip = false;
@@ -62,9 +70,17 @@
     // presenter session on this device. ?demo=1 and ?delay=N still work while they are in the URL.
     if (CFG.showDemoPanel === false) {
       if (!params.has("demo")) ls.del(K.panel);
-      if (!params.has("delay")) ls.del(K.delay);
+      if (!params.has("delay") && !GUIDE_ON) ls.del(K.delay); // the guide keeps the presenter's countdown choice
     }
-    if (params.has("lang") && /^(en|fr)$/.test(params.get("lang"))) ls.set(K.lang, params.get("lang"));
+    // Rehearsal: the whole flow runs without calling the Worker or Aircall. It lasts for this browser tab.
+    // The URL wins even when storage is blocked, so a rehearsal never silently turns into live calls.
+    let simStored = false;
+    try { simStored = sessionStorage.getItem("mc_sim") === "1"; } catch (e) { /* ignore */ }
+    SIM = params.has("sim") ? params.get("sim") === "1" : simStored;
+    if (params.has("sim")) {
+      try { if (SIM) sessionStorage.setItem("mc_sim", "1"); else sessionStorage.removeItem("mc_sim"); } catch (e) { /* ignore */ }
+    }
+    if (!FIXED_LANG && params.has("lang") && /^(en|fr)$/.test(params.get("lang"))) ls.set(K.lang, params.get("lang"));
     if (params.has("passcode")) { ls.set(K.passcode, params.get("passcode")); params.delete("passcode"); strip = true; }
     if (strip) {
       const q = params.toString();
@@ -73,13 +89,13 @@
   })();
 
   const state = {
-    lang: ls.get(K.lang, null) || ((navigator.language || "en").toLowerCase().indexOf("fr") === 0 ? "fr" : "en"),
+    lang: FIXED_LANG || ls.get(K.lang, null) || ((navigator.language || "en").toLowerCase().indexOf("fr") === 0 ? "fr" : "en"),
     cart: sanitizeCart(ls.get(K.cart, [])),
     checkout: ls.get(K.checkout, null), // { id, token, firstName, lastName, email, country, phoneLocal, phone, consent }
     recovery: ls.get(K.recovery, { status: "idle" }),
     discount: ls.get(K.discount, ""),
     // "auto" = small pill while idle, expands by itself once the countdown starts
-    panel: ls.get(K.panel, CFG.showDemoPanel === false ? "hidden" : "auto"),
+    panel: GUIDE_ON ? "hidden" : ls.get(K.panel, CFG.showDemoPanel === false ? "hidden" : "auto"), // the guide replaces this panel
     draft: null,
     pageQty: 1,
     pageOpts: {},
@@ -250,7 +266,7 @@
    *    change, and settles it when the order completes. Closing the tab does not stop it.
    *  - Dry run (no callEndpoint): the timer runs here and only shows the payload.
    */
-  const endpoint = () => String(CFG.callEndpoint || "").replace(/\/+$/, "");
+  const endpoint = () => (SIM ? "" : String(CFG.callEndpoint || "").replace(/\/+$/, "")); // rehearsal = dry run
   const serverMode = () => !!endpoint();
 
   async function api(body) {
@@ -270,8 +286,8 @@
   const recovery = {
     armTimer: null,
     polling: false,
-    delay() { return ls.get(K.delay, null) || CFG.abandonDelaySeconds || 30; },
-    set(next) { state.recovery = next; ls.set(K.recovery, next); renderPanel(); },
+    delay() { return ls.get(K.delay, null) || (GUIDE_ON ? 20 : 0) || CFG.abandonDelaySeconds || 30; }, // 20 s gives the presenter time to narrate
+    set(next) { state.recovery = next; ls.set(K.recovery, next); renderPanel(); emitChange("recovery"); },
     eligible() {
       const c = state.checkout;
       return !!(c && c.id && c.token && c.phone && c.consent && state.cart.length);
@@ -400,6 +416,8 @@
     // Coming back to the page: ask the Worker what happened while we were away.
     onLoad() {
       const r = state.recovery;
+      // A "dry" result left by a rehearsal (?sim=1) must not stop the live run that follows.
+      if (serverMode() && r.status === "dry") { this.set({ status: "idle", checkoutId: r.checkoutId }); return; }
       if (serverMode() && r.token && (r.status === "armed" || r.status === "sending")) {
         this.polling = false;
         this.set(Object.assign({}, r, { status: "sending" }));
@@ -637,7 +655,7 @@
   function viewInformation() {
     if (!state.cart.length) return emptyCheckout();
     const c = state.draft || state.checkout || {};
-    const country = c.country || (state.lang === "fr" ? "FR" : "GB");
+    const country = c.country || "FR"; // France whatever the language, for now (it used to be the UK in English)
     const options = COUNTRIES.map((x) =>
       `<option value="${x.code}" ${x.code === country ? "selected" : ""}>+${x.dial} ${esc(x[state.lang])}</option>`
     ).join("");
@@ -739,6 +757,7 @@
   }
 
   function langToggle() {
+    if (FIXED_LANG) return "";
     return `<div class="lang-toggle" role="group" aria-label="${t("switch_lang")}">
       <button type="button" data-lang="en" lang="en" aria-pressed="${state.lang === "en"}">EN</button>
       <button type="button" data-lang="fr" lang="fr" aria-pressed="${state.lang === "fr"}">FR</button>
@@ -819,6 +838,7 @@
     const count = totals().count;
     $$("[data-cart-count]").forEach((el) => { el.textContent = count; el.hidden = count === 0; });
     if (document.body.classList.contains("cart-open")) renderDrawer();
+    emitChange("cart");
   }
 
   /* ------------------------------------------------------------------ demo panel */
@@ -826,7 +846,7 @@
     const root = $("#demo-root");
     if (state.panel === "hidden") { root.innerHTML = ""; return; }
     const r = state.recovery;
-    const live = !!CFG.callEndpoint;
+    const live = serverMode();
     const c = state.checkout;
     const left = r.status === "armed" ? Math.max(0, r.deadline - Date.now()) : 0;
     const secs = Math.ceil(left / 1000);
@@ -934,6 +954,7 @@
     $$("[data-store-name]").forEach((el) => { el.textContent = CFG.storeName; });
     $$("[data-year]").forEach((el) => { el.textContent = new Date().getFullYear(); });
     $$(".site-header [data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === state.lang)));
+    $$(".site-header .lang-toggle").forEach((el) => { el.style.display = FIXED_LANG ? "none" : ""; });
     $("#announcement").textContent = t("announcement", { amount: money(CFG.freeShippingThreshold) });
     document.title = CFG.storeName;
   }
@@ -971,6 +992,7 @@
     }
     renderCartBits();
     renderPanel();
+    emitChange("render");
   }
 
   /* ------------------------------------------------------------------ events */
@@ -1068,7 +1090,7 @@
   }
 
   function setLang(lang) {
-    if (lang === state.lang) return;
+    if (FIXED_LANG || lang === state.lang) return;
     const form = $("#contact-form");
     if (form) state.draft = readContactForm(form);
     state.lang = lang;
@@ -1184,4 +1206,123 @@
 
   render();
   recovery.onLoad();
+
+  /* ------------------------------------------------------------------ presenter guide bridge */
+  // Only with ?guide=1. assets/guide.js reads the store through this small API and listens for
+  // "mc:change" events. It only gets masked values: never the full phone number or email, the
+  // passcode or the Worker's response.
+  // "+33 6••••••78" and the country it points to, from a normalized E.164 number (null when there is none).
+  function maskSplit(p) {
+    if (!p) return null;
+    const digits = p.slice(1);
+    const hit = COUNTRIES.filter((x) => digits.indexOf(x.dial) === 0).sort((a, b) => b.dial.length - a.dial.length)[0];
+    const dial = hit ? hit.dial : digits.slice(0, 2);
+    const rest = digits.slice(dial.length);
+    return {
+      text: "+" + dial + " " + rest.slice(0, 1) + rest.slice(1, -2).replace(/\d/g, "•") + rest.slice(-2),
+      country: hit ? hit[state.lang] || hit.en : ""
+    };
+  }
+  function emitChange(reason) {
+    if (GUIDE_ON) document.dispatchEvent(new CustomEvent("mc:change", { detail: { reason: reason } }));
+  }
+  function maskEmail(e) {
+    const m = /^(.)[^@]*(@.+)$/.exec(String(e || "").trim());
+    return m ? m[1] + "•••" + m[2] : "";
+  }
+  if (GUIDE_ON) {
+    window.MC_GUIDE = {
+      view() {
+        const c = state.checkout || {};
+        const r = state.recovery || {};
+        const rt = route();
+        const resp = r.response || {};
+        return {
+          lang: state.lang,
+          route: { a: rt.a, b: rt.b },
+          mode: SIM ? "rehearsal" : serverMode() ? "live" : "dry",
+          cartCount: totals().count,
+          discountCode: CFG.discountCode,
+          discountApplied: state.discount === CFG.discountCode,
+          checkout: c.phone ? {
+            ref: c.id,
+            firstName: c.firstName,
+            lastInitial: String(c.lastName || "").trim().charAt(0).toUpperCase(),
+            phone: maskPhone(c.phone),
+            email: maskEmail(c.email)
+          } : null,
+          recovery: {
+            status: r.status || "idle",
+            checkoutId: r.checkoutId || null,
+            deadline: r.deadline || null,
+            delaySeconds: recovery.delay(),
+            eventId: resp.event_id || null,
+            workerDryRun: !!resp.dry_run,
+            message: r.status === "error" ? String(r.message || "") : ""
+          }
+        };
+      },
+      // What a number typed in the checkout form would become, masked, or null while it is incomplete.
+      // Uses the store's own rules, so the guide never disagrees with what the Worker will receive.
+      // Returns { text, country }: the dial code is split from the rest so a +44 / +33 slip is easy to spot.
+      phonePreview(countryCode, raw) {
+        const country = COUNTRIES.find((x) => x.code === countryCode) || COUNTRIES[0];
+        return maskSplit(normalizePhone(raw, country.dial));
+      },
+      // What Emma is told for the current checkout, as label/value pairs, with the personal values masked
+      // (phone, email, last name as an initial). Built from the real payload so it can't drift from the call.
+      callView() {
+        const c = state.checkout;
+        if (!c || !c.phone || !state.cart.length) return null;
+        const p = buildCallPayload();
+        const x = p.context;
+        const initial = String(c.lastName || "").trim().charAt(0).toUpperCase();
+        // same names and order as the Worker's context (docs/agent-brief.md section 2); empty values are left out
+        const rows = [
+          ["customer_name", x.contact_first_name + (initial ? " " + initial + "." : "")],
+          ["contact_first_name", x.contact_first_name],
+          ["contact_last_name", initial ? initial + "." : ""],
+          ["contact_email", maskEmail(c.email)],
+          ["contact_phone", (maskSplit(c.phone) || {}).text],
+          ["language", x.language],
+          ["store_name", x.store_name],
+          ["cart_reference", x.cart_reference],
+          ["cart_items", x.cart_items],
+          ["cart_item_count", x.cart_item_count],
+          ["cart_total", x.cart_total],
+          ["shipping_note", x.shipping_note],
+          ["discount_code", x.discount_code],
+          ["discount_offer", x.discount_offer]
+        ].filter((row) => row[1]);
+        return {
+          firstName: x.contact_first_name,
+          items: x.cart_items,
+          total: x.cart_total,
+          code: x.discount_code,
+          offer: x.discount_offer,
+          rows: rows
+        };
+      },
+      actions: {
+        // Returns false when the checkout details are not filled in yet.
+        callNow() { if (!recovery.eligible()) return false; recovery.fire(); return true; },
+        // Start the countdown again (after the Worker refused to arm it). False without checkout details.
+        rearm() { if (!recovery.eligible()) return false; recovery.arm(); return true; },
+        cancel() { recovery.cancel(); },
+        reset() { resetDemo(); },
+        setDelay(n) {
+          n = parseInt(n, 10);
+          if (!(n >= 5 && n <= 3600)) return;
+          ls.set(K.delay, n);
+          if (state.recovery.status === "armed") recovery.arm(); // restart with the new delay
+          else emitChange("delay");
+        }
+      }
+    };
+    const v = (SELF && /[?&]v=([\w.-]+)/.exec(SELF.src) || [])[1];
+    const js = document.createElement("script");
+    js.src = "assets/guide.js" + (v ? "?v=" + v : "");
+    js.defer = true;
+    document.body.appendChild(js);
+  }
 })();

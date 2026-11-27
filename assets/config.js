@@ -19,6 +19,11 @@ window.STORE_CONFIG = {
   discountCode: "MERCI10",
   discountPercent: 10,
 
+  // One language for the whole demo: "fr" or "en". The EN/FR switch disappears and the call
+  // and the presenter guide stay in that language, whichever country code the visitor picks.
+  // Leave it empty ("") to bring the EN/FR switch back.
+  fixedLanguage: "fr",
+
   // Pricing (all prices are whole euros so the agent can say them cleanly)
   currency: "EUR",
   freeShippingThreshold: 50,

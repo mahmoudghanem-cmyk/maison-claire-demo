@@ -11,9 +11,43 @@ Everything you need to configure the outbound AI Voice Agent in Aircall for this
 | Agent name | Emma (easy to say in both languages, and different from the store name) |
 | Phone number | Assign a number to each agent in the Aircall Dashboard. Without one, Aircall answers **409 Conflict**. |
 | Voicemail | Leave a message (text below) |
-| Transfer (optional) | If a human is available during the demo, enable escalation with the trigger "The customer asks to speak to a person" and a target team or user. Otherwise leave it off. |
+| Transfer | **French agent: on**, only when the customer explicitly asks for a person. Values in [Transfer and postal code](#transfer-and-postal-code-french-agent) below. (English agent: unchanged, optional.) |
+| Collected data | **French agent:** one intake question, the delivery postal code. Values below. |
 
 > **France number rules.** French mobile (06, 07) and geographic (01 to 05, 09) numbers cannot be used as an AI agent's outbound number; use an NPV number. Check which number you are demoing from and which number you will call before the demo.
+
+### Transfer and postal code (French agent)
+
+Set both on the French agent in the Aircall Dashboard. The prompt below already refers to them: step 6 of the call flow and the transfer rule.
+
+**Transfer to a person** (outbound escalation)
+
+| Setting | Value |
+| --- | --- |
+| Escalation | On. |
+| Trigger (plain text) | `Le client demande explicitement à parler à une personne, à un conseiller ou à un responsable. Ne pas transférer pour un simple mécontentement, une hésitation ou une question sans réponse.` |
+| Spoken line when transferring | `Bien sûr, je vous mets en relation avec un collègue tout de suite. Ne quittez pas.` (read word for word: no dashes, no ellipses) |
+| Target | One destination only: a user, a team or an external number. A ringing line is enough, nobody has to be waiting for the call. **Choose it in the Dashboard** (the ID belongs to your account). |
+
+- The trigger and the target must both be filled in, or escalation doesn't work.
+- Transfer branches are for inbound agents only: leave them empty.
+- Don't pick the "after intake" protocol, it forces a transfer on every call. Leave the protocol on its default: for an outbound agent the trigger above decides.
+- Test it with a target that really rings (see section 7), because the transfer can't be checked from the store.
+
+**Postal code** (intake question)
+
+| Setting | Value |
+| --- | --- |
+| Question | `Quel est votre code postal de livraison ?` |
+| Field | `postal_code`, text (not a number, so a leading zero such as 06000 is kept). The agent stores it with `store_postal_code`. |
+| Required | No. The prompt (step 6) decides when to ask, so a customer who only wants information, or who wants to stop, is not forced through it. |
+| Follow-up questions | None (one level at most, and not needed here). |
+| Parameter description | `Avant de poser cette question, vérifiez le contexte enregistré et ne la posez pas si le client a déjà donné son code postal. Acceptez tout format, français ou étranger, sans le reformater. Gardez les zéros du début : c'est un texte, pas un nombre.` |
+| Data confirmation | Leave it on, so the agent reads the code back once. Digits are easy to mishear. |
+
+- The prompt does not repeat the question: the intake setting is the single place it lives. Keep it that way.
+- The answer is saved with the call in Aircall. The Worker never sees the call, so it is not in the visitor list (`leads.csv`).
+- The delivery times the agent gives come from [kb-delivery.md](kb-delivery.md): metropolitan France, Corsica, other countries, and no overseas departments yet.
 
 ## 2. Context variables
 
@@ -125,8 +159,9 @@ Aider le client à finaliser sa commande. Comprendre ce qui l'a arrêté, répon
 3. Écoutez. Répondez uniquement avec les informations de la boutique, en une ou deux phrases courtes.
 4. Si le prix ou la livraison posent question, ou si le client hésite, proposez {{discount_offer}} avec le code {{discount_code}}.
 5. Précisez que son panier est enregistré : il peut revenir sur le site, finaliser sa commande et saisir le code dans le champ code de réduction.
-6. Si le client n'est pas intéressé, remerciez-le et terminez l'appel. N'insistez pas.
-7. Concluez chaleureusement et souhaitez-lui une belle journée.
+6. Si le client reste intéressé ou n'a plus de question, demandez-lui son code postal de livraison avec la question de collecte prévue pour cela, une seule fois. S'il ne veut pas le donner, n'insistez pas et passez à la suite. Une fois le code reçu, donnez en une phrase le délai de livraison de sa zone d'après les informations de la boutique : France métropolitaine, Corse, ou un autre pays (si le code n'est pas français, demandez d'abord le pays). Pour un département d'outre-mer, dites que nous ne livrons pas encore cette zone. Pour la table à manger et le fauteuil, donnez le délai du mobilier, pas celui des colis.
+7. Si le client n'est pas intéressé, remerciez-le et terminez l'appel. N'insistez pas.
+8. Concluez chaleureusement et souhaitez-lui une belle journée.
 
 # Règles
 - Vouvoyez toujours le client. Appel de moins de deux minutes. Une question à la fois.
@@ -136,6 +171,9 @@ Aider le client à finaliser sa commande. Comprendre ce qui l'a arrêté, répon
 - Pour la table à manger et le fauteuil, {{cart_items}} indique le bois, la taille, le tissu ou les pieds choisis par le client. Répondez d'abord sur cette version, et donnez les délais sous forme de fourchette.
 - Dites le code « merci dix ». Si on vous demande de l'épeler : M, E, R, C, I, un, zéro.
 - Si le client ne souhaite plus être appelé, confirmez-le, excusez-vous pour le dérangement et terminez l'appel.
+- Si le client demande explicitement à parler à une personne, à un conseiller ou à un responsable, ne cherchez pas à le retenir : dites que vous le mettez en relation avec un collègue et transférez l'appel. Ne proposez jamais le transfert de vous-même. Un client mécontent, hésitant, ou une question sans réponse n'est pas une demande de transfert.
+- Ne reposez jamais une question de collecte à laquelle le client a déjà répondu.
+- Une fois votre phrase de conclusion prononcée, ne parlez plus.
 - Si on vous demande si vous êtes un robot ou une IA, répondez oui, vous êtes l'assistante IA de Maison Claire.
 - Parlez uniquement français.
 ```
@@ -205,3 +243,19 @@ Paste the section matching each agent's language into its knowledge base. For de
 | "When would the terracotta armchair arrive?" | « Le fauteuil terracotta arriverait quand ? » |
 | "Can I just pay over the phone?" (agent should decline) | « Je peux payer par téléphone ? » (l'agent doit refuser) |
 | "Please don't call me again." (agent should stop) | « Ne me rappelez plus. » (l'agent doit arrêter) |
+
+### Postal code and transfer (French agent)
+
+| À dire | Résultat attendu |
+| --- | --- |
+| Rester intéressé, puis donner « 69003 » | L'agent le relit une fois, puis donne 3 à 6 jours ouvrés (France métropolitaine) |
+| Donner « zéro six mille » (06000) | Le zéro du début est conservé et relu correctement |
+| Donner un code de Corse, « 20000 » | 5 à 8 jours ouvrés |
+| Donner un code d'outre-mer, « 97400 » | L'agent dit que nous ne livrons pas encore cette zone |
+| Donner un code étranger, « SW1A 1AA » | L'agent demande le pays, puis donne la fourchette du Royaume-Uni (5 à 8 jours ouvrés) |
+| Panier avec la table ou le fauteuil, puis donner un code postal | Le délai du mobilier, pas celui des colis. Livraison offerte, le client choisit le jour et le créneau |
+| « Je préfère ne pas donner mon code postal. » | L'agent n'insiste pas et passe à la suite |
+| Donner son code postal dès le début de l'appel | L'agent ne le redemande pas |
+| « Je voudrais parler à quelqu'un. » | L'agent dit qu'il vous met en relation, et la ligne cible sonne |
+| « C'est trop cher, je ne suis pas content. » | L'agent ne transfère pas : il répond, puis propose le code MERCI10 |
+| « Ne me rappelez plus. » | L'agent arrête : ce n'est pas une demande de transfert |
